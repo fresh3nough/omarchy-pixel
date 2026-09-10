@@ -1,7 +1,11 @@
-Add Omarchy to your home screen:
-1. Long-press home screen → Widgets
-2. Find "Termux:Widget" → drag to home
-3. Tap it → choose "Omarchy"
+Omarchy home shortcut (Pixel)
 
-One tap opens Hyprland + foot + goose via Termux:X11.
-Binds: SUPER+Return foot | SUPER+K keyboard | SUPER+G goose
+Installed:
+- App: "Omarchy" (com.omarchy.launcher) — open drawer → long-press → Add to home
+- Or Termux:Widget → choose "Omarchy"
+
+Tap once → fullscreen Termux:X11 desktop:
+  tokyo-night theme + Audi quattro racecar wallpaper
+  floating foot terminal (local Omarchy look)
+
+Binds: Super+Return foot | Super+G goose | Super+B chromium | Super+J arrange
