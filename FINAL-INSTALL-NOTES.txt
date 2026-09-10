@@ -1,0 +1,29 @@
+=== OMARCHY ON PIXEL - COMPLETE ===
+
+WHAT EXISTS:
+- setup-omarchy-pixel.sh  (uses foot, not kitty; installs goose desktop)
+- start-omarchy.sh         (launcher script)
+- app/AndroidManifest.xml  (Omarchy.apk wrapper)
+- app/src/                 (MainActivity.java - launches Termux shortcut)
+- staging/Omarchy.sh       (Termux Widget shortcut script)
+
+WHAT YOU STILL NEED ON PHONE:
+1. Open Termux once (accept prompts) so /data/data/com.termux/files exists
+2. Run in Termux:  bash /sdcard/omarchy-pixel/bootstrap-on-device.sh
+3. Wait for setup to complete (Arch install is long ~20min for tarball)
+4. After SETUP_DONE, run:  bash ~/start-omarchy.sh
+5. For home screen shortcut:  Long-press home → Widgets → Termux:Widget → choose Omarchy
+
+NOTE ABOUT ARCH LINUX:
+- The official Docker archlinux image is amd64-only (no arm64)
+- The tarfile download from archlinuxarm.org is 791MB and takes ~30-60min
+- If it doesn't complete, try manually:  proot-distro install archlinux/archlinux  (if a compatible image exists)
+- Alternative: install debian or ubuntu instead in the script and adapt the desktop session
+
+EXECUTION ORDER ON DEVICE:
+  pkg install termux-widget termux-api
+  mkdir -p ~/.shortcuts/icons
+  cp /sdcard/omarchy-pixel/Omarchy.sh ~/.shortcuts/Omarchy
+  chmod +x ~/.shortcuts/Omarchy
+  cp /sdcard/omarchy-pixel/app/res/drawable/omarchy_icon.png ~/.shortcuts/icons/
+

@@ -1,0 +1,17 @@
+# Large binaries — download on demand via install-via-adb.sh
+apks/*.apk
+*.apk
+
+# Local runtime / device artifacts
+host-run.log
+install-log.txt
+smoke-test.png
+staging/omarchy-setup.log
+staging/seed-done.txt
+staging/status.txt
+staging/mirror.pid
+*.log
+
+# Arch rootfs tarball (hundreds of MB)
+ArchLinuxARM-*.tar.gz
+**/ArchLinuxARM-*.tar.gz
