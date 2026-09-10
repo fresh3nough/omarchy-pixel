@@ -1,6 +1,6 @@
-# Omarchy-Pixel - Hyprland Desktop on Pixel via Termux
+# Omarchy-Pixel - Linux Desktop on Pixel via Termux
 
-A guide to set up and run Omarchy (Hyprland desktop) on a Pixel phone using Termux and ADB.
+A guide to set up and run Omarchy-style desktop (Hyprland when available, otherwise **sway** on Arch Linux ARM) on a Pixel phone using Termux and ADB.
 
 ## Overview
 

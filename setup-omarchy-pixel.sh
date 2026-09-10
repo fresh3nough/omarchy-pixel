@@ -57,7 +57,20 @@ pkg install -y termux-api 2>/dev/null || true
 log "2/7 Installing Arch Linux ARM container"
 # proot-distro only treats a path as a local archive when it starts with /, ./, ../, or ~
 # Bare names like "archlinux" are always resolved as Docker images (amd64-only upstream).
-if proot-distro list 2>/dev/null | grep -qiE '(^|[[:space:]])archlinux([[:space:]]|$)'; then
+arch_installed() {
+  # Prefer a real login probe — `proot-distro list` format varies by version.
+  proot-distro login archlinux -- true >/dev/null 2>&1 && return 0
+  local rootfs
+  for rootfs in \
+    "$PREFIX/var/lib/proot-distro/installed-rootfs/archlinux" \
+    "$HOME/../usr/var/lib/proot-distro/installed-rootfs/archlinux"
+  do
+    [ -d "$rootfs" ] && [ -f "$rootfs/etc/os-release" ] && return 0
+  done
+  return 1
+}
+
+if arch_installed; then
   warn "Arch already installed, skipping..."
 else
   proot-distro remove archlinux 2>/dev/null || true
@@ -80,24 +93,43 @@ else
   fi
 
   # Sanity check
-  proot-distro list 2>/dev/null | grep -qi archlinux \
+  arch_installed \
     || { echo "ERROR: archlinux container failed to install"; exit 1; }
+  log "Arch container installed OK"
 fi
 
-log "3/7 Bootstrapping Arch with Hyprland mobile build + foot + goose"
+log "3/7 Bootstrapping Arch with compositor + foot + goose"
 proot-distro login archlinux -- bash -c '
 set -euo pipefail
 pacman-key --init 2>/dev/null || true
 pacman-key --populate archlinuxarm 2>/dev/null || pacman-key --populate archlinux 2>/dev/null || true
+
+# Prefer reachable Arch Linux ARM mirrors (default mirror often times out on mobile).
+cat > /etc/pacman.d/mirrorlist << "MIRRORS"
+Server = http://ca.us.mirror.archlinuxarm.org/\$arch/\$repo
+Server = http://mirrors.ocf.berkeley.edu/archlinuxarm/\$arch/\$repo
+Server = http://mirror.archlinuxarm.org/\$arch/\$repo
+MIRRORS
+
 pacman --disable-sandbox -Sy --noconfirm
-pacman --disable-sandbox -S --noconfirm --needed base-devel git wget curl sudo tar bzip2 \
-  binutils zstd xz mesa vulkan-icd-loader libxkbcommon wayland \
-  foot hyprland waybar mako wl-clipboard grim slurp \
-  neovim zsh tmux btop fastfetch fzf ripgrep \
-  starship ttf-font-awesome otf-font-awesome \
-  pipewire wireplumber 2>/dev/null || \
-pacman --disable-sandbox -S --noconfirm --needed base-devel git wget curl sudo tar bzip2 \
-  binutils zstd mesa libxkbcommon wayland foot neovim zsh tmux btop fzf ripgrep starship
+
+# Base always-required packages
+pacman --disable-sandbox -S --noconfirm --needed \
+  base-devel git wget curl sudo tar bzip2 binutils zstd xz \
+  mesa vulkan-icd-loader libxkbcommon wayland \
+  foot neovim zsh tmux btop fzf ripgrep starship \
+  ttf-dejavu ttf-liberation || true
+
+# Compositor: Hyprland is not always in Arch ARM repos. Fall back to sway, then cage.
+if pacman --disable-sandbox -S --noconfirm --needed hyprland waybar mako wl-clipboard grim slurp 2>/dev/null; then
+  echo "compositor=hyprland"
+elif pacman --disable-sandbox -S --noconfirm --needed sway waybar mako wl-clipboard grim slurp wlr-randr 2>/dev/null; then
+  echo "compositor=sway"
+elif pacman --disable-sandbox -S --noconfirm --needed cage foot 2>/dev/null; then
+  echo "compositor=cage"
+else
+  echo "WARN: no compositor package installed; session will try whatever is available"
+fi
 
 # Create user (omarchy expects non-root)
 id -u cody &>/dev/null || useradd -m -G wheel -s /bin/bash cody
@@ -106,9 +138,6 @@ chmod 440 /etc/sudoers.d/cody
 
 # Ensure home dirs
 sudo -u cody mkdir -p /home/cody/.config /home/cody/.local/{bin,share,src} /home/cody/Downloads
-
-# AUR extras skipped — pacman direct only
-# Skip yay (needs go 1.24 which fails)
 
 # Omarchy dotfiles — cherry-pick, not full OS installer
 sudo -u cody bash -c "
@@ -127,9 +156,6 @@ for d in hypr quickshell nvim waybar mako foot; do
 done
 cp /home/cody/.local/share/omarchy/config/starship.toml /home/cody/.config/ 2>/dev/null || true
 "
-
-# goose desktop install skipped for now (CLI only)
-# goose desktop app install skipped for now
 
 echo "Arch bootstrap done"
 '
@@ -236,82 +262,178 @@ chown -R cody:cody /home/cody/.config /home/cody/.local /home/cody/.bashrc
 "
 
 log "5/7 Creating launchers (Termux + Arch session)"
-cat > "$HOME_DIR/start-omarchy.sh" << 'LAUNCHER'
+# Prefer short -xstartup path: long inline args are rejected by termux-x11,
+# and Termux LD_PRELOAD makes Xorg abort as "unsafe environment".
+cat > "$HOME_DIR/omarchy-xstartup.sh" << 'XSTART'
 #!/data/data/com.termux/files/usr/bin/bash
-# Launch Omarchy (Hyprland via Termux:X11)
-set -e
+set -euo pipefail
 PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
 export PATH="$PREFIX/bin:$PATH"
+rm -rf "$PREFIX/tmp/.X11-unix" 2>/dev/null || true
+mkdir -p "$PREFIX/tmp/.X11-unix"
+pulseaudio --start \
+  --load="module-native-protocol-tcp auth-anonymous=1" \
+  --exit-idle-time=-1 >/dev/null 2>&1 || true
+# --shared-tmp already maps tmp; do not also --bind PREFIX/tmp:/tmp (overlap warning).
+exec proot-distro login archlinux \
+  --user cody \
+  --shared-tmp \
+  -- env DISPLAY=:0 \
+       WAYLAND_DISPLAY=wayland-0 \
+       XDG_RUNTIME_DIR=/tmp \
+       HOME=/home/cody \
+       PULSE_SERVER=tcp:127.0.0.1 \
+       QT_QPA_PLATFORM=wayland \
+       GDK_BACKEND=wayland \
+       /home/cody/.local/bin/omarchy-session
+XSTART
+chmod 755 "$HOME_DIR/omarchy-xstartup.sh"
+cp -f "$HOME_DIR/omarchy-xstartup.sh" /sdcard/omarchy-pixel/omarchy-xstartup.sh 2>/dev/null || true
 
-# Wake / unlock hint
-am start -a android.intent.action.MAIN -c android.intent.category.HOME >/dev/null 2>&1 || true
+cat > "$HOME_DIR/start-omarchy.sh" << 'LAUNCHER'
+#!/data/data/com.termux/files/usr/bin/bash
+# Launch Omarchy desktop via Termux:X11 + Arch proot compositor
+set -euo pipefail
+PREFIX="${PREFIX:-/data/data/com.termux/files/usr}"
+export PATH="$PREFIX/bin:$PATH"
+HOME_DIR="${HOME:-/data/data/com.termux/files/home}"
+SDCARD_DIR="/sdcard/omarchy-pixel"
+LOG="$SDCARD_DIR/termux-x11.log"
 
-# Kill old session bits
+if [ ! -f "$HOME_DIR/.omarchy-installed" ] && ! proot-distro login archlinux -- true >/dev/null 2>&1; then
+  echo "Omarchy not installed yet. Running setup..."
+  if [ -f "$HOME_DIR/setup-omarchy-pixel.sh" ]; then
+    exec bash "$HOME_DIR/setup-omarchy-pixel.sh"
+  fi
+  exec bash "$SDCARD_DIR/setup-omarchy-pixel.sh"
+fi
+
 pkill -9 termux-x11 2>/dev/null || true
 pkill -9 Xwayland 2>/dev/null || true
-pkill -9 pulseaudio 2>/dev/null || true
 sleep 0.5
 rm -rf "$PREFIX/tmp/.X11-unix" 2>/dev/null || true
-mkdir -p "$PREFIX/tmp"
+mkdir -p "$PREFIX/tmp/.X11-unix" "$PREFIX/tmp"
+: > "$LOG"
 
-# Audio
 pulseaudio --start \
   --load="module-native-protocol-tcp auth-anonymous=1" \
   --exit-idle-time=-1 2>/dev/null || pulseaudio --start 2>/dev/null || true
 
-# Start X11 + Hyprland inside Arch
-termux-x11 :0 -xstartup "sleep 1; proot-distro login archlinux --user cody --shared-tmp --bind /data/data/com.termux/files/usr/tmp:/tmp -- env DISPLAY=:0 WAYLAND_DISPLAY=wayland-0 XDG_RUNTIME_DIR=/tmp HOME=/home/cody PULSE_SERVER=tcp:127.0.0.1 QT_QPA_PLATFORM=wayland GDK_BACKEND=wayland /home/cody/.local/bin/omarchy-session" &
-sleep 1
+# 1) Start Termux:X11 X server only.
+# Unset LD_PRELOAD for Xorg only — proot still needs Termux's preload.
+env -u LD_PRELOAD termux-x11 :0 >"$LOG" 2>&1 &
 
-# Open Android Termux:X11 activity fullscreen-ish
 am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1 \
   || am start --user 0 -n com.termux.x11/.MainActivity >/dev/null 2>&1 \
   || true
 
-echo "Omarchy session started. Switch to Termux:X11 if it did not focus."
-echo "First boot can take ~30s (quickshell / Hyprland)."
-echo "SUPER+Return = foot  |  SUPER+K = keyboard  |  SUPER+G = goose"
+# 2) Wait for the X11 socket under Termux tmp
+for i in $(seq 1 40); do
+  if [ -S "$PREFIX/tmp/.X11-unix/X0" ]; then
+    echo "X0 ready after ${i} tries" >>"$LOG"
+    break
+  fi
+  sleep 0.5
+done
+
+if [ ! -S "$PREFIX/tmp/.X11-unix/X0" ]; then
+  echo "WARN: X0 socket missing" | tee -a "$LOG"
+  ls -la "$PREFIX/tmp" "$PREFIX/tmp/.X11-unix" >>"$LOG" 2>&1 || true
+fi
+
+sleep 1
+
+# 3) Start compositor inside Arch against DISPLAY=:0
+# Keep default env (incl. LD_PRELOAD) so proot can exec.
+# --shared-tmp shares Termux /tmp (X0) into the proot.
+proot-distro login archlinux \
+  --user cody \
+  --shared-tmp \
+  -- env \
+    DISPLAY=:0 \
+    XDG_RUNTIME_DIR=/tmp \
+    HOME=/home/cody \
+    PULSE_SERVER=tcp:127.0.0.1 \
+    WLR_BACKENDS=x11 \
+    WLR_NO_HARDWARE_CURSORS=1 \
+    QT_QPA_PLATFORM=wayland \
+    GDK_BACKEND=wayland \
+    /home/cody/.local/bin/omarchy-session \
+  >>"$LOG" 2>&1 &
+
+sleep 2
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity >/dev/null 2>&1 \
+  || am start --user 0 -n com.termux.x11/.MainActivity >/dev/null 2>&1 \
+  || true
+
+echo "Omarchy session started."
+echo "SUPER+Return = foot  |  SUPER+Shift+e = exit sway"
 LAUNCHER
 chmod +x "$HOME_DIR/start-omarchy.sh"
 
 # Also expose as ~/.shortcuts for Termux:Widget home-screen tap
 mkdir -p "$HOME_DIR/.shortcuts"
-# Widget scripts must be a single command name without extension ideally,
-# but .shortcuts/*.sh works with Termux:Widget
 cat > "$HOME_DIR/.shortcuts/Omarchy" << 'WIDGET'
 #!/data/data/com.termux/files/usr/bin/bash
-# Termux:Widget home-screen entry → Omarchy desktop
 exec "$HOME/start-omarchy.sh"
 WIDGET
-chmod +x "$HOME_DIR/.shortcuts/Omarchy"
+cp -f "$HOME_DIR/.shortcuts/Omarchy" "$HOME_DIR/.shortcuts/Omarchy.sh"
+chmod +x "$HOME_DIR/.shortcuts/Omarchy" "$HOME_DIR/.shortcuts/Omarchy.sh"
 
 # Session wrapper inside Arch
 proot-distro login archlinux -- bash -c '
 set -e
-mkdir -p /home/cody/.local/bin
+mkdir -p /home/cody/.local/bin /home/cody/.config/foot /home/cody/.config/sway
+# Safe foot config (no invalid [colors] section on newer foot)
+cat > /home/cody/.config/foot/foot.ini << "FOOT"
+[main]
+term=xterm-256color
+font=DejaVu Sans Mono:size=14
+pad=8x8
+FOOT
+# Minimal sway config for phone
+cat > /home/cody/.config/sway/config << "SWAY"
+set $mod Mod4
+output * bg #1a1b26 solid_color
+default_border pixel 2
+font pango:DejaVu Sans Mono 12
+bindsym $mod+Return exec foot
+bindsym $mod+t exec foot
+bindsym $mod+q kill
+bindsym $mod+d exec foot
+bindsym $mod+Shift+e exit
+exec_always waybar || true
+SWAY
 cat > /home/cody/.local/bin/omarchy-session << "SESS"
 #!/bin/bash
 export DISPLAY="${DISPLAY:-:0}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/tmp}"
 export XDG_SESSION_TYPE=wayland
-export XDG_CURRENT_DESKTOP=Hyprland
 export PULSE_SERVER="${PULSE_SERVER:-tcp:127.0.0.1}"
 export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland}"
 export GDK_BACKEND=wayland
 export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+mkdir -p "$XDG_RUNTIME_DIR"
 cd "$HOME"
-# Prefer Hyprland; fall back to a foot shell if WM missing
 if command -v Hyprland >/dev/null 2>&1; then
+  export XDG_CURRENT_DESKTOP=Hyprland
   exec Hyprland
 elif command -v hyprland >/dev/null 2>&1; then
+  export XDG_CURRENT_DESKTOP=Hyprland
   exec hyprland
+elif command -v sway >/dev/null 2>&1; then
+  export XDG_CURRENT_DESKTOP=sway
+  exec sway
+elif command -v cage >/dev/null 2>&1; then
+  export XDG_CURRENT_DESKTOP=cage
+  exec cage foot
 else
   exec foot
 fi
 SESS
 chmod +x /home/cody/.local/bin/omarchy-session
-chown -R cody:cody /home/cody/.local/bin
+chown -R cody:cody /home/cody/.local /home/cody/.config
 '
 
 log "6/7 Installing goose desktop assets check + PATH"
