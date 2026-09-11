@@ -1,14 +1,10 @@
-# Omarchy Pixel — tokyo-night + quattro, landscape/monitor-mirror ready
 set $mod Mod4
 set $term foot
-set $bg /home/cody/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg
 set $browser /home/cody/.local/bin/omarchy-chromium
 set $goosebin /home/cody/.local/bin/omarchy-goose
 set $onepass /home/cody/.local/bin/1password
 
-# Solid fallback; real wallpaper via omarchy-wallpaper (swaybg + bwrap stub)
 output * bg #1a1b26 solid_color
-
 default_border pixel 2
 default_floating_border pixel 2
 font pango:DejaVu Sans Mono 12
@@ -17,7 +13,6 @@ gaps outer 4
 smart_gaps on
 smart_borders on
 focus_follows_mouse yes
-
 client.focused          #7aa2f7 #1a1b26 #c0caf5 #7aa2f7 #7aa2f7
 client.focused_inactive #414868 #1a1b26 #a9b1d6 #414868 #414868
 client.unfocused        #1a1b26 #13141c #565f89 #1a1b26 #1a1b26
@@ -36,10 +31,6 @@ bindsym $mod+b exec $browser
 bindsym $mod+p exec $onepass
 bindsym $mod+f fullscreen
 bindsym $mod+Space floating toggle
-bindsym $mod+j exec window-arrange
-bindsym $mod+h focus left
-bindsym $mod+l focus right
-bindsym $mod+k focus up
 bindsym $mod+Shift+e exit
 bindsym $mod+r reload
 bindsym $mod+1 workspace number 1
@@ -59,10 +50,10 @@ input type:pointer {
     accel_profile flat
 }
 
+# Sway owns these processes so they survive and inherit SWAYSOCK.
 bar {
     swaybar_command waybar
 }
-
-exec_always sleep 0.5 && /home/cody/.local/bin/omarchy-wallpaper
-exec waybar
+exec_always /home/cody/.local/bin/omarchy-wallpaper
 exec foot
+exec /home/cody/.local/bin/omarchy-goose

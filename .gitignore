@@ -16,3 +16,5 @@ staging/mirror.pid
 ArchLinuxARM-*.tar.gz
 **/ArchLinuxARM-*.tar.gz
 pixel/desktop-verified.png
+pixel/goose-secrets.yaml
+**/secrets.yaml

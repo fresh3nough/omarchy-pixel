@@ -1,9 +1,16 @@
 #!/bin/bash
-# Omarchy Pixel — goose TUI in a dedicated foot window
-export PATH="${HOME:-/home/cody}/.local/bin:/usr/bin:$PATH"
-export DISPLAY="${DISPLAY:-:0}"
 export HOME="${HOME:-/home/cody}"
-if command -v foot >/dev/null 2>&1; then
-  exec foot --app-id=omarchy-goose --title=Goose bash -lc 'cd "$HOME"; exec goose'
-fi
-exec goose
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+export DISPLAY="${DISPLAY:-:0}"
+export LANG=C.UTF-8 LC_ALL=C.UTF-8
+[ -f "$HOME/.config/goose/env.sh" ] && . "$HOME/.config/goose/env.sh"
+export OPENROUTER_HOST="${OPENROUTER_HOST:-https://openrouter.ai}"
+export GOOSE_PROVIDER="${GOOSE_PROVIDER:-openrouter}"
+export GOOSE_MODEL="${GOOSE_MODEL:-x-ai/grok-4.5}"
+exec foot --app-id=omarchy-goose --title=Goose bash -lc '
+  export HOME=/home/cody LANG=C.UTF-8 LC_ALL=C.UTF-8
+  [ -f "$HOME/.config/goose/env.sh" ] && . "$HOME/.config/goose/env.sh"
+  export GOOSE_PROVIDER=openrouter GOOSE_MODEL=x-ai/grok-4.5 OPENROUTER_HOST=https://openrouter.ai
+  cd "$HOME"
+  exec goose
+'
