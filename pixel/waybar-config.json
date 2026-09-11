@@ -1,0 +1,14 @@
+{
+  "layer": "top",
+  "position": "top",
+  "height": 32,
+  "spacing": 6,
+  "modules-left": ["sway/workspaces", "sway/window"],
+  "modules-center": ["clock"],
+  "modules-right": ["cpu", "memory"],
+  "sway/workspaces": { "all-outputs": true, "format": "{name}" },
+  "sway/window": { "max-length": 48 },
+  "clock": { "format": "{:%a %b %d  %H:%M}" },
+  "cpu": { "interval": 5, "format": "cpu {usage}%" },
+  "memory": { "interval": 10, "format": "mem {percentage}%" }
+}
