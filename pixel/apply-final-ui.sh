@@ -31,7 +31,7 @@ client.unfocused        #1a1b26 #13141c #565f89 #1a1b26 #1a1b26
 client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
-for_window [app_id="omarchy-goose"] border pixel 2
+for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 520 px height 620 px, move position 12 px 55 px
 for_window [class="Chromium"] border pixel 2
 for_window [class="1Password"] border pixel 2
 
@@ -67,7 +67,6 @@ bar {
     swaybar_command waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
-exec foot
 exec /home/cody/.local/bin/omarchy-goose
 SWAY
 
