@@ -1,39 +1,49 @@
-#!/usr/bin/env bash
-# Set Omarchy quattro wallpaper for sway on Pixel (proot-safe).
-# Requires /usr/bin/bwrap stub so glycin can load images under proot.
-set -euo pipefail
-export PATH="${HOME:-/home/cody}/.local/bin:/usr/bin:/bin:$PATH"
+#!/bin/bash
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
 export DISPLAY="${DISPLAY:-:0}"
 export GLYCIN_DISABLE_SANDBOX=1
 export BUBBLEWRAP_SKIP=1
-
-BG="${HOME}/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg"
-PNG="${HOME}/.local/share/omarchy-pixel/background.png"
+BG="$HOME/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg"
 [ -f "$BG" ] || exit 0
 
+# Prefer env from live sway process
+SP=$(pgrep -x sway | head -1)
+if [ -n "$SP" ] && [ -r /proc/$SP/environ ]; then
+  tr '\0' '\n' < /proc/$SP/environ > /tmp/sway.env.wp 2>/dev/null || true
+  WD=$(grep '^WAYLAND_DISPLAY=' /tmp/sway.env.wp 2>/dev/null | head -1 | cut -d= -f2-)
+  XR=$(grep '^XDG_RUNTIME_DIR=' /tmp/sway.env.wp 2>/dev/null | head -1 | cut -d= -f2-)
+  [ -n "$WD" ] && export WAYLAND_DISPLAY=$WD
+  [ -n "$XR" ] && export XDG_RUNTIME_DIR=$XR
+fi
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
 export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-1}"
-if [ ! -S "${XDG_RUNTIME_DIR}/${WAYLAND_DISPLAY}" ]; then
-  if [ -S "${HOME}/.run/wayland-1" ]; then
-    export XDG_RUNTIME_DIR="${HOME}/.run"
+
+# Ensure socket exists
+if [ ! -S "$XDG_RUNTIME_DIR/$WAYLAND_DISPLAY" ]; then
+  if [ -S "$HOME/.run/wayland-1" ]; then
+    export XDG_RUNTIME_DIR=$HOME/.run
+    export WAYLAND_DISPLAY=wayland-1
+  elif [ -S /tmp/wayland-1 ]; then
+    export XDG_RUNTIME_DIR=/tmp
     export WAYLAND_DISPLAY=wayland-1
   fi
 fi
 
+echo "wp XR=$XDG_RUNTIME_DIR WD=$WAYLAND_DISPLAY sock=$(ls -la $XDG_RUNTIME_DIR/$WAYLAND_DISPLAY 2>&1)" >> /tmp/wp.log
+
 pkill -x swaybg 2>/dev/null || true
 pkill -x feh 2>/dev/null || true
-
-IMG="$BG"
-[ -f "$IMG" ] || IMG="$PNG"
-
+: > /tmp/swaybg.log
 GLYCIN_DISABLE_SANDBOX=1 BUBBLEWRAP_SKIP=1 \
-  swaybg -o '*' -i "$IMG" -m fill >/tmp/swaybg.log 2>&1 &
-sleep 0.8
-if pgrep -x swaybg >/dev/null 2>&1 && ! grep -qiE 'Failed|Unable' /tmp/swaybg.log 2>/dev/null; then
+  swaybg -o '*' -i "$BG" -m fill >>/tmp/swaybg.log 2>&1 &
+sleep 1
+if pgrep -x swaybg >/dev/null && ! grep -qiE 'Failed|Unable' /tmp/swaybg.log 2>/dev/null; then
+  echo swaybg_ok >> /tmp/wp.log
+  cat /tmp/swaybg.log >> /tmp/wp.log
   exit 0
 fi
-
-# feh X11 fallback
+echo swaybg_fail >> /tmp/wp.log
+cat /tmp/swaybg.log >> /tmp/wp.log
 pkill -x swaybg 2>/dev/null || true
 DISPLAY=:0 feh --no-fehbg --bg-fill "$BG" >/dev/null 2>&1 &
 exit 0

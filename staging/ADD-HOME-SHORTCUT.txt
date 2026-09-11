@@ -1,11 +1,17 @@
 Omarchy home shortcut (Pixel)
 
-Installed:
-- App: "Omarchy" (com.omarchy.launcher) — open drawer → long-press → Add to home
-- Or Termux:Widget → choose "Omarchy"
+Installed & verified:
+- Termux:Widget shortcut "Omarchy.sh" on home screen
+- Tap once → fullscreen Termux:X11 Omarchy desktop
+  - landscape lock
+  - sway + waybar + foot
+  - Audi quattro wallpaper (swaybg)
+  - tokyo-night theme
 
-Tap once → fullscreen Termux:X11 desktop:
-  tokyo-night theme + Audi quattro racecar wallpaper
-  floating foot terminal (local Omarchy look)
+Also available:
+- App drawer "Omarchy" (com.omarchy.launcher) — may no-op on Play Store Termux
+  (Play Termux lacks RUN_COMMAND). Prefer Omarchy.sh widget.
 
-Binds: Super+Return foot | Super+G goose | Super+B chromium | Super+J arrange
+Scripts:
+  ~/.shortcuts/Omarchy.sh  →  ~/start-omarchy-fullscreen.sh
+  Super+Return foot | Super+G goose | Super+B chromium
