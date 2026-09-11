@@ -1,0 +1,9 @@
+#!/bin/bash
+# Omarchy Pixel — goose TUI in a dedicated foot window
+export PATH="${HOME:-/home/cody}/.local/bin:/usr/bin:$PATH"
+export DISPLAY="${DISPLAY:-:0}"
+export HOME="${HOME:-/home/cody}"
+if command -v foot >/dev/null 2>&1; then
+  exec foot --app-id=omarchy-goose --title=Goose bash -lc 'cd "$HOME"; exec goose'
+fi
+exec goose

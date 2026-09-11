@@ -32,12 +32,23 @@ adb push "$ROOT/waybar-config.json" "$SD/waybar-config.json" >/dev/null
 adb push "$ROOT/waybar-style.css" "$SD/waybar-style.css" >/dev/null
 adb push "$ROOT/omarchy-wallpaper" "$SD/omarchy-wallpaper" >/dev/null
 adb push "$ROOT/start-omarchy-fullscreen.sh" "$SD/start-omarchy-fullscreen.sh" >/dev/null
+adb push "$ROOT/Omarchy.sh" "$SD/Omarchy.sh" >/dev/null
+adb push "$ROOT/omarchy-chromium" "$SD/omarchy-chromium" >/dev/null
+adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
+adb push "$ROOT/omarchy-start-apps" "$SD/omarchy-start-apps" >/dev/null
+adb push "$ROOT/install-1password-desktop.sh" "$SD/install-1password-desktop.sh" >/dev/null
+adb push "$ROOT/install-bwrap-stub.sh" "$SD/install-bwrap-stub.sh" >/dev/null
 adb push "$ROOT/sway-config" "$SD_RICE/pixel/sway-config" >/dev/null
 adb push "$ROOT/foot.ini" "$SD_RICE/pixel/foot.ini" >/dev/null
 adb push "$ROOT/waybar-config.json" "$SD_RICE/pixel/waybar-config.json" >/dev/null
 adb push "$ROOT/waybar-style.css" "$SD_RICE/pixel/waybar-style.css" >/dev/null
 adb push "$ROOT/omarchy-wallpaper" "$SD_RICE/pixel/omarchy-wallpaper" >/dev/null
 adb push "$ROOT/start-omarchy-fullscreen.sh" "$SD_RICE/pixel/start-omarchy-fullscreen.sh" >/dev/null
+adb push "$ROOT/Omarchy.sh" "$SD_RICE/pixel/Omarchy.sh" >/dev/null
+adb push "$ROOT/omarchy-chromium" "$SD_RICE/pixel/omarchy-chromium" >/dev/null
+adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
+adb push "$ROOT/omarchy-start-apps" "$SD_RICE/pixel/omarchy-start-apps" >/dev/null
+adb push "$ROOT/install-1password-desktop.sh" "$SD_RICE/pixel/install-1password-desktop.sh" >/dev/null
 # Also keep install-pixel available
 if [ -f "$REPO/install-pixel.sh" ]; then
   adb push "$REPO/install-pixel.sh" "$SD_RICE/install-pixel.sh" >/dev/null
@@ -141,6 +152,20 @@ FOOT
 install -m 0644 $SD/waybar-config.json ~/.config/waybar/config
 install -m 0644 $SD/waybar-style.css ~/.config/waybar/style.css
 install -m 0755 $SD/omarchy-wallpaper ~/.local/bin/omarchy-wallpaper
+install -m 0755 $SD/omarchy-chromium ~/.local/bin/omarchy-chromium 2>/dev/null || true
+install -m 0755 $SD/omarchy-goose ~/.local/bin/omarchy-goose 2>/dev/null || true
+install -m 0755 $SD/omarchy-start-apps ~/.local/bin/omarchy-start-apps 2>/dev/null || true
+# 1password wrapper only if desktop binary present
+if [ -x /opt/1Password/1password ] && [ ! -x ~/.local/bin/1password ]; then
+  cat > ~/.local/bin/1password << "WRAP"
+#!/bin/bash
+export DISPLAY="${DISPLAY:-:0}" LIBGL_ALWAYS_SOFTWARE=1 ELECTRON_OZONE_PLATFORM_HINT=x11
+cd /opt/1Password
+exec ./1password --no-sandbox --disable-gpu --disable-gpu-compositing --disable-gpu-sandbox --disable-dev-shm-usage --ozone-platform=x11 --in-process-gpu "$@"
+WRAP
+  chmod 755 ~/.local/bin/1password
+fi
+
 
 # Session launcher
 cat > ~/.local/bin/omarchy-session << "SESS"

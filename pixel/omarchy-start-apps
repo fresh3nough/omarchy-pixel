@@ -1,0 +1,46 @@
+#!/bin/bash
+# Launch goose + chromium + 1Password desktop on live Omarchy session.
+# Run from foot inside Arch, after sway is up (e.g. via Omarchy.sh shortcut first).
+set +e
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/opt/1Password:/usr/bin:$PATH"
+export DISPLAY="${DISPLAY:-:0}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export ELECTRON_OZONE_PLATFORM_HINT=x11
+
+# goose
+if ! pgrep -x goose >/dev/null 2>&1; then
+  if [ -x "$HOME/.local/bin/omarchy-goose" ]; then
+    "$HOME/.local/bin/omarchy-goose" >/tmp/goose.log 2>&1 &
+  else
+    foot --app-id=omarchy-goose --title=Goose bash -lc 'cd "$HOME"; exec goose' >/tmp/goose.log 2>&1 &
+  fi
+fi
+
+# chromium
+if ! pgrep -x chromium >/dev/null 2>&1; then
+  if [ -x "$HOME/.local/bin/omarchy-chromium" ]; then
+    "$HOME/.local/bin/omarchy-chromium" "${1:-https://archlinux.org}" >/tmp/chromium.log 2>&1 &
+  else
+    /usr/bin/chromium --user-data-dir="$HOME/.config/chromium-omarchy" \
+      --ozone-platform=x11 --disable-gpu --no-sandbox --disable-dev-shm-usage \
+      --in-process-gpu "${1:-https://archlinux.org}" >/tmp/chromium.log 2>&1 &
+  fi
+fi
+
+# 1Password desktop
+if ! pgrep -f '/opt/1Password/1password' >/dev/null 2>&1; then
+  if [ -x "$HOME/.local/bin/1password" ]; then
+    "$HOME/.local/bin/1password" >/tmp/1password.log 2>&1 &
+  elif [ -x /opt/1Password/1password ]; then
+    (cd /opt/1Password && ./1password --no-sandbox --disable-gpu \
+      --ozone-platform=x11 --in-process-gpu --disable-dev-shm-usage >/tmp/1password.log 2>&1 &)
+  else
+    echo "1Password desktop not installed. Run install-1password-desktop.sh" >&2
+  fi
+fi
+
+sleep 2
+echo "goose: $(pgrep -c -x goose 2>/dev/null || echo 0)"
+echo "chromium: $(pgrep -c chromium 2>/dev/null || echo 0)"
+echo "1password: $(pgrep -c -f '/opt/1Password/1password' 2>/dev/null || echo 0)"

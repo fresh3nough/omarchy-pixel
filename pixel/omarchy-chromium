@@ -1,0 +1,25 @@
+#!/bin/bash
+# Omarchy Pixel — Chromium under Termux:X11 / proot (software GL, no zygote issues)
+export DISPLAY="${DISPLAY:-:0}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export PATH="${HOME:-/home/cody}/.local/bin:/usr/bin:$PATH"
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ] && command -v dbus-launch >/dev/null 2>&1; then
+  eval "$(dbus-launch --sh-syntax)" || true
+fi
+PROFILE="${HOME:-/home/cody}/.config/chromium-omarchy"
+mkdir -p "$PROFILE"
+exec /usr/bin/chromium \
+  --user-data-dir="$PROFILE" \
+  --ozone-platform=x11 \
+  --disable-gpu \
+  --disable-gpu-compositing \
+  --disable-gpu-sandbox \
+  --no-sandbox \
+  --disable-dev-shm-usage \
+  --in-process-gpu \
+  --no-first-run \
+  --no-default-browser-check \
+  --password-store=basic \
+  --disable-features=IsolateOrigins,site-per-process \
+  --force-device-scale-factor="${OMARCHY_CHROMIUM_SCALE:-1.15}" \
+  "$@"

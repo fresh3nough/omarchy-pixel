@@ -2,6 +2,9 @@
 set $mod Mod4
 set $term foot
 set $bg /home/cody/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg
+set $browser /home/cody/.local/bin/omarchy-chromium
+set $goosebin /home/cody/.local/bin/omarchy-goose
+set $onepass /home/cody/.local/bin/1password
 
 # Solid fallback; real wallpaper via omarchy-wallpaper (swaybg + bwrap stub)
 output * bg #1a1b26 solid_color
@@ -21,12 +24,16 @@ client.unfocused        #1a1b26 #13141c #565f89 #1a1b26 #1a1b26
 client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
+for_window [app_id="omarchy-goose"] border pixel 2
+for_window [class="Chromium"] border pixel 2
+for_window [class="1Password"] border pixel 2
 
 bindsym $mod+Return exec $term
 bindsym $mod+t exec $term
 bindsym $mod+q kill
-bindsym $mod+g exec goose
-bindsym $mod+b exec env DISPLAY=:0 chromium --ozone-platform=x11 --disable-gpu || chromium
+bindsym $mod+g exec $goosebin
+bindsym $mod+b exec $browser
+bindsym $mod+p exec $onepass
 bindsym $mod+f fullscreen
 bindsym $mod+Space floating toggle
 bindsym $mod+j exec window-arrange

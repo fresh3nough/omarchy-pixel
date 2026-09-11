@@ -8,10 +8,13 @@ Installed & verified:
   - Audi quattro wallpaper (swaybg)
   - tokyo-night theme
 
+After desktop is up (from foot):
+  omarchy-start-apps          # goose + chromium + 1Password desktop
+  Super+G goose | Super+B chromium | Super+P 1Password
+
+1Password = official aarch64 desktop app in /opt/1Password
+  (install-1password-desktop.sh — not CLI-only)
+
 Also available:
 - App drawer "Omarchy" (com.omarchy.launcher) — may no-op on Play Store Termux
   (Play Termux lacks RUN_COMMAND). Prefer Omarchy.sh widget.
-
-Scripts:
-  ~/.shortcuts/Omarchy.sh  →  ~/start-omarchy-fullscreen.sh
-  Super+Return foot | Super+G goose | Super+B chromium
