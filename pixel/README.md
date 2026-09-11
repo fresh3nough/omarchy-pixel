@@ -22,6 +22,26 @@ bash ~/start-omarchy-fullscreen.sh
 bash ~/.shortcuts/Omarchy.sh
 ```
 
+The launcher configures Termux:X11 and nested Sway for the Pixel's native
+**2992×1344 landscape** surface, enables Android immersive fullscreen, and hides
+the Termux:X11 extra-key bar. Override the X resolution when needed:
+
+```bash
+OMARCHY_X11_RESOLUTION=1920x1080 bash ~/configure-termux-x11.sh
+```
+
+## Start automatically after Android boot
+
+The deploy script installs:
+
+```text
+~/.termux/boot/00-omarchy.sh
+```
+
+Google Play Termux includes a `BOOT_COMPLETED` receiver, so no separate
+Termux:Boot package is required for this build. Disable auto-start by removing
+that file. Change the default 12-second boot delay with `OMARCHY_BOOT_DELAY`.
+
 **Mirror to monitor (host USB):**
 ```bash
 scrcpy --video-codec=h264 --max-fps=60 --stay-awake --window-title='Omarchy Pixel'

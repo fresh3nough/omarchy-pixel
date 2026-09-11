@@ -2,19 +2,19 @@ Omarchy home shortcut (Pixel)
 
 Installed & verified:
 - Termux:Widget shortcut "Omarchy.sh" on home screen
-- Tap once → fullscreen Termux:X11 Omarchy desktop
-  - landscape lock
-  - sway + waybar + foot
-  - Audi quattro wallpaper (swaybg)
-  - tokyo-night theme
+- Tap once → native 2992x1344 fullscreen Termux:X11 Omarchy desktop
+  - forced landscape + immersive fullscreen
+  - Termux:X11 extra-key bar hidden
+  - Sway X11-1 output explicitly set to 2992x1344
+  - Waybar date/time, CPU and memory
+  - Audi quattro wallpaper
+  - Goose desktop on OpenRouter x-ai/grok-4.5
 
-After desktop is up (from foot):
-  omarchy-start-apps          # goose + chromium + 1Password desktop
-  Super+G goose | Super+B chromium | Super+P 1Password
+Automatic boot:
+  ~/.termux/boot/00-omarchy.sh
+  waits 12 seconds after Android boot, applies Termux:X11 preferences,
+  then starts the same fullscreen Omarchy session.
 
-1Password = official aarch64 desktop app in /opt/1Password
-  (install-1password-desktop.sh — not CLI-only)
-
-Also available:
-- App drawer "Omarchy" (com.omarchy.launcher) — may no-op on Play Store Termux
-  (Play Termux lacks RUN_COMMAND). Prefer Omarchy.sh widget.
+Binds:
+  Super+G Goose | Super+B Chromium | Super+P 1Password
+  Super+Return Foot | Super+F Fullscreen

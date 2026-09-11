@@ -23,6 +23,14 @@ need_adb() {
 echo "=== deploy Omarchy Pixel rice ==="
 need_adb
 
+# Keep Termux eligible to run its built-in BOOT_COMPLETED receiver and launch
+# the desktop after Android restarts. Commands are best-effort across Android builds.
+adb shell cmd deviceidle whitelist +com.termux >/dev/null 2>&1 || true
+adb shell am set-standby-bucket com.termux active >/dev/null 2>&1 || true
+adb shell appops set com.termux RUN_IN_BACKGROUND allow >/dev/null 2>&1 || true
+adb shell appops set com.termux RUN_ANY_IN_BACKGROUND allow >/dev/null 2>&1 || true
+adb shell pm enable com.termux/.app.TermuxBootReceiver >/dev/null 2>&1 || true
+
 # Push assets
 adb shell "mkdir -p $SD/backgrounds $SD_RICE/pixel"
 adb push "$ROOT/1-quattro.jpg" "$SD/backgrounds/1-quattro.jpg" >/dev/null
@@ -32,6 +40,8 @@ adb push "$ROOT/waybar-config.json" "$SD/waybar-config.json" >/dev/null
 adb push "$ROOT/waybar-style.css" "$SD/waybar-style.css" >/dev/null
 adb push "$ROOT/omarchy-wallpaper" "$SD/omarchy-wallpaper" >/dev/null
 adb push "$ROOT/start-omarchy-fullscreen.sh" "$SD/start-omarchy-fullscreen.sh" >/dev/null
+adb push "$ROOT/configure-termux-x11.sh" "$SD/configure-termux-x11.sh" >/dev/null
+adb push "$ROOT/boot-omarchy.sh" "$SD/boot-omarchy.sh" >/dev/null
 adb push "$ROOT/Omarchy.sh" "$SD/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
@@ -44,6 +54,8 @@ adb push "$ROOT/waybar-config.json" "$SD_RICE/pixel/waybar-config.json" >/dev/nu
 adb push "$ROOT/waybar-style.css" "$SD_RICE/pixel/waybar-style.css" >/dev/null
 adb push "$ROOT/omarchy-wallpaper" "$SD_RICE/pixel/omarchy-wallpaper" >/dev/null
 adb push "$ROOT/start-omarchy-fullscreen.sh" "$SD_RICE/pixel/start-omarchy-fullscreen.sh" >/dev/null
+adb push "$ROOT/configure-termux-x11.sh" "$SD_RICE/pixel/configure-termux-x11.sh" >/dev/null
+adb push "$ROOT/boot-omarchy.sh" "$SD_RICE/pixel/boot-omarchy.sh" >/dev/null
 adb push "$ROOT/Omarchy.sh" "$SD_RICE/pixel/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD_RICE/pixel/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
@@ -66,9 +78,11 @@ LOG=$SD/deploy-apply.log
 exec > >(tee -a "$LOG") 2>&1
 echo "APPLY_START $(date -Iseconds)"
 
-mkdir -p "$HOME_DIR/.shortcuts" "$HOME_DIR/.local/bin" 2>/dev/null || true
+mkdir -p "$HOME_DIR/.shortcuts" "$HOME_DIR/.local/bin" "$HOME_DIR/.termux/boot" 2>/dev/null || true
 cp -f "$SD/start-omarchy-fullscreen.sh" "$HOME_DIR/start-omarchy-fullscreen.sh"
 cp -f "$SD/start-omarchy-fullscreen.sh" "$HOME_DIR/start-omarchy.sh"
+cp -f "$SD/configure-termux-x11.sh" "$HOME_DIR/configure-termux-x11.sh"
+cp -f "$SD/boot-omarchy.sh" "$HOME_DIR/.termux/boot/00-omarchy.sh"
 cp -f "$SD/start-omarchy-fullscreen.sh" "$HOME_DIR/.shortcuts/Omarchy"
 cp -f "$SD/start-omarchy-fullscreen.sh" "$HOME_DIR/.shortcuts/Omarchy.sh"
 # widget-friendly short launcher
@@ -77,8 +91,13 @@ cat > "$HOME_DIR/.shortcuts/Omarchy" <<'SC'
 exec bash /data/data/com.termux/files/home/start-omarchy-fullscreen.sh
 SC
 chmod 755 "$HOME_DIR/start-omarchy-fullscreen.sh" "$HOME_DIR/start-omarchy.sh" \
+  "$HOME_DIR/configure-termux-x11.sh" "$HOME_DIR/.termux/boot/00-omarchy.sh" \
   "$HOME_DIR/.shortcuts/Omarchy" "$HOME_DIR/.shortcuts/Omarchy.sh" \
-  "$SD/start-omarchy-fullscreen.sh" "$SD/omarchy-wallpaper"
+  "$SD/start-omarchy-fullscreen.sh" "$SD/configure-termux-x11.sh" \
+  "$SD/boot-omarchy.sh" "$SD/omarchy-wallpaper"
+
+# Persist the custom full-resolution Termux:X11 preferences immediately.
+"$HOME_DIR/configure-termux-x11.sh"
 
 # Apply inside Arch proot as cody
 proot-distro login archlinux --user cody --shared-tmp -- bash -lc '

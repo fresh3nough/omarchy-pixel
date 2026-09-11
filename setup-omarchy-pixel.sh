@@ -262,6 +262,33 @@ chown -R cody:cody /home/cody/.config /home/cody/.local /home/cody/.bashrc
 "
 
 log "5/7 Creating launchers (Termux + Arch session)"
+
+# Persist a native landscape Termux:X11 surface. Its exported preference
+# receiver is supported by the app and avoids editing private app data.
+cat > "$HOME_DIR/configure-termux-x11.sh" << 'X11PREFS'
+#!/data/data/com.termux/files/usr/bin/bash
+set -euo pipefail
+resolution="${OMARCHY_X11_RESOLUTION:-}"
+if [[ -z "$resolution" ]] && command -v wm >/dev/null 2>&1; then
+  physical="$(wm size 2>/dev/null | sed -n 's/^Physical size: //p' | tail -n1)"
+  if [[ "$physical" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    a="${BASH_REMATCH[1]}"; b="${BASH_REMATCH[2]}"
+    (( a >= b )) && resolution="${a}x${b}" || resolution="${b}x${a}"
+  fi
+fi
+resolution="${resolution:-2992x1344}"
+timeout 8 am broadcast -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
+  --es displayResolutionMode custom --es displayResolutionCustom "$resolution" \
+  --es displayStretch true --es adjustResolution true \
+  --es displayFilteringMode nearest --es displayScale 100 \
+  --es fullscreen true --es forceOrientation landscape --es hideCutout true \
+  --es showAdditionalKbd false --es additionalKbdVisible false \
+  --es Reseed false --es PIP false >/dev/null
+printf '%s\n' "$resolution" > "$HOME/.omarchy-x11-resolution"
+X11PREFS
+chmod 755 "$HOME_DIR/configure-termux-x11.sh"
+"$HOME_DIR/configure-termux-x11.sh"
+
 # Prefer short -xstartup path: long inline args are rejected by termux-x11,
 # and Termux LD_PRELOAD makes Xorg abort as "unsafe environment".
 cat > "$HOME_DIR/omarchy-xstartup.sh" << 'XSTART'
@@ -299,6 +326,9 @@ export PATH="$PREFIX/bin:$PATH"
 HOME_DIR="${HOME:-/data/data/com.termux/files/home}"
 SDCARD_DIR="/sdcard/omarchy-pixel"
 LOG="$SDCARD_DIR/termux-x11.log"
+
+# Reapply native high-resolution/fullscreen preferences on every launch.
+[ -x "$HOME_DIR/configure-termux-x11.sh" ] && "$HOME_DIR/configure-termux-x11.sh"
 
 if [ ! -f "$HOME_DIR/.omarchy-installed" ] && ! proot-distro login archlinux -- true >/dev/null 2>&1; then
   echo "Omarchy not installed yet. Running setup..."
@@ -380,6 +410,22 @@ WIDGET
 cp -f "$HOME_DIR/.shortcuts/Omarchy" "$HOME_DIR/.shortcuts/Omarchy.sh"
 chmod +x "$HOME_DIR/.shortcuts/Omarchy" "$HOME_DIR/.shortcuts/Omarchy.sh"
 
+# Auto-launch Omarchy after Android BOOT_COMPLETED. This Google Play Termux
+# build has a built-in boot receiver and runs executable scripts in this path.
+mkdir -p "$HOME_DIR/.termux/boot"
+cat > "$HOME_DIR/.termux/boot/00-omarchy.sh" << 'BOOT'
+#!/data/data/com.termux/files/usr/bin/bash
+set +e
+export PATH="${PREFIX:-/data/data/com.termux/files/usr}/bin:$PATH"
+sleep "${OMARCHY_BOOT_DELAY:-12}"
+[ -x "$HOME/configure-termux-x11.sh" ] && "$HOME/configure-termux-x11.sh"
+exec "$HOME/start-omarchy.sh"
+BOOT
+chmod 755 "$HOME_DIR/.termux/boot/00-omarchy.sh"
+# Best-effort background eligibility for this Google Play Termux build.
+am set-standby-bucket com.termux active >/dev/null 2>&1 || true
+cmd deviceidle whitelist +com.termux >/dev/null 2>&1 || true
+
 # Session wrapper inside Arch
 proot-distro login archlinux -- bash -c '
 set -e
@@ -394,6 +440,8 @@ FOOT
 # Minimal sway config for phone
 cat > /home/cody/.config/sway/config << "SWAY"
 set $mod Mod4
+# The wlroots nested X11 backend defaults to 1024x768; fill native Pixel landscape.
+output X11-1 mode 2992x1344 scale 1
 output * bg #1a1b26 solid_color
 default_border pixel 2
 font pango:DejaVu Sans Mono 12

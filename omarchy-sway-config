@@ -4,6 +4,9 @@ set $browser /home/cody/.local/bin/omarchy-chromium
 set $goosebin /home/cody/.local/bin/omarchy-goose
 set $onepass /home/cody/.local/bin/1password
 
+# The wlroots X11 backend otherwise defaults to 1024x768 even when
+# Termux:X11 itself is native-resolution. This mode fills the Pixel display.
+output X11-1 mode 2992x1344 scale 1
 output * bg #1a1b26 solid_color
 default_border pixel 2
 default_floating_border pixel 2
@@ -19,7 +22,8 @@ client.unfocused        #1a1b26 #13141c #565f89 #1a1b26 #1a1b26
 client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
-for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 520 px height 620 px, move position 12 px 55 px
+# Proportional sizing stays usable on the native 2992x1344 output and mirrored monitors.
+for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 42 ppt height 82 ppt, move position 1 ppt 6 ppt
 for_window [class="Chromium"] border pixel 2
 for_window [class="1Password"] border pixel 2
 

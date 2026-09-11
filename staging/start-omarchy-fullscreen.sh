@@ -12,6 +12,22 @@ if [ -f "$LOCK" ]; then
 fi
 date +%s > "$LOCK"
 echo "LAUNCH $(date -Iseconds)" | tee -a "$SD/launch-history.log"
+
+# Persist the native high-resolution, landscape, fullscreen Termux:X11 surface
+# before starting its server/activity. Safe to run on every shortcut or boot.
+if [ -x "${HOME:-/data/data/com.termux/files/home}/configure-termux-x11.sh" ]; then
+  "${HOME:-/data/data/com.termux/files/home}/configure-termux-x11.sh" >>"$LOG" 2>&1
+else
+  timeout 8 am broadcast -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
+    --es displayResolutionMode custom \
+    --es displayResolutionCustom 2992x1344 \
+    --es displayStretch true --es adjustResolution true \
+    --es displayFilteringMode nearest --es displayScale 100 \
+    --es fullscreen true --es forceOrientation landscape --es hideCutout true \
+    --es showAdditionalKbd false --es additionalKbdVisible false \
+    --es Reseed false --es PIP false >/dev/null 2>&1
+fi
+
 pkill -9 termux-x11 2>/dev/null
 pkill -9 sway 2>/dev/null
 pkill -9 foot 2>/dev/null
@@ -39,7 +55,7 @@ proot-distro login archlinux --user cody --shared-tmp -- env \
   LANG=C.UTF-8 LC_ALL=C.UTF-8 /home/cody/.local/bin/omarchy-session >>"$LOG" 2>&1 &
 # Only wait; do NOT restart wallpaper/bar in a temporary proot.
 for i in $(seq 1 60); do
-  count=$(adb shell true 2>/dev/null; proot-distro login archlinux --user cody --shared-tmp -- bash -lc 'pgrep -c -x sway; pgrep -c -x swaybg; pgrep -c -x waybar; pgrep -c -x goose' 2>/dev/null | tr '\n' ' ')
+  count=$(proot-distro login archlinux --user cody --shared-tmp -- bash -lc 'pgrep -c -x sway; pgrep -c -x swaybg; pgrep -c -x waybar; pgrep -c -x goose' 2>/dev/null | tr '\n' ' ')
   echo "wait $i $count" >> "$LOG"
   echo "$count" | grep -Eq '[1-9].*[1-9].*[1-9].*[1-9]' && break
   sleep 0.5
