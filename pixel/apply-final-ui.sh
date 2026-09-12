@@ -7,6 +7,7 @@ chmod 700 $HOME/.run $HOME/.config/goose
 cp -f $SD/waybar-config.json $HOME/.config/waybar/config
 cp -f $SD/waybar-style.css $HOME/.config/waybar/style.css
 install -m 0755 $SD/omarchy-wallpaper $HOME/.local/bin/omarchy-wallpaper
+install -m 0755 $SD/omarchy-command $HOME/.local/bin/omarchy-command
 [ -f $SD/backgrounds/1-quattro.jpg ] && cp -f $SD/backgrounds/1-quattro.jpg $HOME/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg
 
 cat > $HOME/.config/sway/config << 'SWAY'
@@ -34,6 +35,9 @@ client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
 # Proportional sizing stays usable on the native 2992x1344 output and mirrored monitors.
+for_window [app_id="omarchy-rice"] border pixel 2
+for_window [app_id="window-arrange"] border pixel 2
+for_window [app_id="omarchy-command-menu"] floating enable, sticky enable, border pixel 2, resize set width 44 ppt height 54 ppt, move position center
 for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 42 ppt height 82 ppt, move position 1 ppt 6 ppt
 for_window [class="Chromium"] border pixel 2
 for_window [class="1Password"] border pixel 2

@@ -107,3 +107,17 @@ bash pixel/deploy-to-pixel.sh
 - swaybg → glycin → bwrap needs `install-bwrap-stub.sh` under proot.
 - Foot on Arch ARM 1.28 uses `[colors-dark]`.
 - Chromium/1Password need X11 ozone + `--no-sandbox` + `--disable-gpu` under proot; launch from the **live** foot/sway session so processes stay parented correctly.
+
+## Persistent touch command dock
+
+Every Omarchy launch installs a permanent top-bar dock: **☰ TERM RICE GRID GOOSE WEB 1P**.
+The buttons launch commands inside the Pixel Sway session. **☰** shows a touch-friendly
+command guide; **RICE** runs `install-pixel.sh`, and **GRID** runs `window-arrange` in
+separate Foot windows with logs under `/sdcard/omarchy-pixel/`.
+
+If the deploy reports that external `RUN_COMMAND` is unavailable, leave Termux open and run:
+
+```bash
+bash /sdcard/omarchy-pixel/apply-landscape.sh
+bash ~/start-omarchy-fullscreen.sh
+```

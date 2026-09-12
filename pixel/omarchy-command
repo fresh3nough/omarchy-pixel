@@ -1,0 +1,30 @@
+#!/bin/bash
+# Touch-friendly dispatcher used by the permanent Pixel Waybar command dock.
+set -u
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+LOG=/sdcard/omarchy-pixel/command-dock.log
+printf '%s %s\n' "$(date -Iseconds)" "${1:-menu}" >>"$LOG" 2>/dev/null || true
+foot_run() {
+  local id="$1" title="$2" command="$3"
+  foot --app-id="$id" --title="$title" bash -lc "$command; rc=\$?; printf '\n[exit %s] Press Enter to close...\n' \"\$rc\"; read -r" &
+}
+case "${1:-menu}" in
+  menu)
+    foot_run omarchy-command-menu 'Omarchy Commands' \
+      "printf '\n  OMARCHY PIXEL COMMANDS\n\n  TERM   New terminal\n  RICE   Run omarchy-rice installer\n  GRID   Run window-arrange\n  GOOSE  Open Goose\n  WEB    Open Chromium\n  1P     Open 1Password\n\nUse the permanent buttons in the top bar.\n'"
+    ;;
+  terminal) foot --app-id=omarchy-terminal --title='Pixel Terminal' & ;;
+  rice)
+    foot_run omarchy-rice omarchy-rice \
+      "cd /home/cody/github/omarchy-rice && bash ./install-pixel.sh 2>&1 | tee /sdcard/omarchy-pixel/install-pixel-live.log"
+    ;;
+  arrange)
+    foot_run window-arrange window-arrange \
+      "if [ -d /home/cody/github/window-arrange ]; then cd /home/cody/github/window-arrange; elif [ -d /home/cody/github/omarchy-rice ]; then cd /home/cody/github/omarchy-rice; fi; if [ -x ./window-arrange ]; then ./window-arrange; elif command -v window-arrange >/dev/null; then window-arrange; elif [ -x ./scripts/window-arrange ]; then ./scripts/window-arrange; else echo 'window-arrange not found'; exit 127; fi 2>&1 | tee /sdcard/omarchy-pixel/window-arrange-live.log"
+    ;;
+  goose) /home/cody/.local/bin/omarchy-goose & ;;
+  browser) /home/cody/.local/bin/omarchy-chromium about:blank & ;;
+  onepass) /home/cody/.local/bin/1password & ;;
+  *) echo "usage: omarchy-command {menu|terminal|rice|arrange|goose|browser|onepass}" >&2; exit 2 ;;
+esac

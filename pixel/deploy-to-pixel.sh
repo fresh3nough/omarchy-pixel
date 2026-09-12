@@ -33,7 +33,10 @@ adb shell pm enable com.termux/.app.TermuxBootReceiver >/dev/null 2>&1 || true
 
 # Push assets
 adb shell "mkdir -p $SD/backgrounds $SD_RICE/pixel"
-adb push "$ROOT/1-quattro.jpg" "$SD/backgrounds/1-quattro.jpg" >/dev/null
+BACKGROUND="$ROOT/1-quattro.jpg"
+[ -f "$BACKGROUND" ] || BACKGROUND="$REPO/backgrounds/1-quattro.jpg"
+[ -f "$BACKGROUND" ] || { echo "ERROR: quattro background not found" >&2; exit 1; }
+adb push "$BACKGROUND" "$SD/backgrounds/1-quattro.jpg" >/dev/null
 adb push "$ROOT/sway-config" "$SD/sway-config" >/dev/null
 adb push "$ROOT/foot.ini" "$SD/foot.ini" >/dev/null
 adb push "$ROOT/waybar-config.json" "$SD/waybar-config.json" >/dev/null
@@ -46,6 +49,7 @@ adb push "$ROOT/Omarchy.sh" "$SD/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD/omarchy-start-apps" >/dev/null
+adb push "$ROOT/omarchy-command" "$SD/omarchy-command" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD/install-1password-desktop.sh" >/dev/null
 adb push "$ROOT/install-bwrap-stub.sh" "$SD/install-bwrap-stub.sh" >/dev/null
 adb push "$ROOT/sway-config" "$SD_RICE/pixel/sway-config" >/dev/null
@@ -60,6 +64,7 @@ adb push "$ROOT/Omarchy.sh" "$SD_RICE/pixel/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD_RICE/pixel/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD_RICE/pixel/omarchy-start-apps" >/dev/null
+adb push "$ROOT/omarchy-command" "$SD_RICE/pixel/omarchy-command" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD_RICE/pixel/install-1password-desktop.sh" >/dev/null
 # Also keep install-pixel available
 if [ -f "$REPO/install-pixel.sh" ]; then
@@ -97,7 +102,9 @@ chmod 755 "$HOME_DIR/start-omarchy-fullscreen.sh" "$HOME_DIR/start-omarchy.sh" \
   "$SD/boot-omarchy.sh" "$SD/omarchy-wallpaper"
 
 # Persist the custom full-resolution Termux:X11 preferences immediately.
-"$HOME_DIR/configure-termux-x11.sh"
+# Some Termux:X11 builds return non-zero even after accepting the broadcast;
+# configuration deployment must continue in that case.
+"$HOME_DIR/configure-termux-x11.sh" || true
 
 # Apply inside Arch proot as cody
 proot-distro login archlinux --user cody --shared-tmp -- bash -lc '
@@ -174,6 +181,7 @@ install -m 0755 $SD/omarchy-wallpaper ~/.local/bin/omarchy-wallpaper
 install -m 0755 $SD/omarchy-chromium ~/.local/bin/omarchy-chromium 2>/dev/null || true
 install -m 0755 $SD/omarchy-goose ~/.local/bin/omarchy-goose 2>/dev/null || true
 install -m 0755 $SD/omarchy-start-apps ~/.local/bin/omarchy-start-apps 2>/dev/null || true
+install -m 0755 $SD/omarchy-command ~/.local/bin/omarchy-command
 # 1password wrapper only if desktop binary present
 if [ -x /opt/1Password/1password ] && [ ! -x ~/.local/bin/1password ]; then
   cat > ~/.local/bin/1password << "WRAP"
@@ -239,6 +247,7 @@ adb shell chmod 755 "$SD/apply-landscape.sh" "$SD/start-omarchy-fullscreen.sh" "
 
 # Run apply via Termux (non-debuggable — use am start service RUN_COMMAND)
 echo "Running apply via Termux..."
+adb shell "rm -f $SD/deploy-apply.log"
 adb shell am startservice \
   -n com.termux/.app.RunCommandService \
   -a com.termux.RUN_COMMAND \
@@ -258,7 +267,11 @@ for i in $(seq 1 40); do
   fi
   sleep 1
 done
-adb shell "tail -80 $SD/deploy-apply.log 2>/dev/null || echo 'apply log missing — will try alternate launch'"
+adb shell "tail -80 $SD/deploy-apply.log 2>/dev/null || echo 'apply log missing — open Termux and run: bash $SD/apply-landscape.sh'"
+if ! adb shell "grep -q APPLY_DONE $SD/deploy-apply.log 2>/dev/null"; then
+  echo "ERROR: config apply did not run; external RUN_COMMAND is unavailable" >&2
+  exit 1
+fi
 
 echo "=== force landscape + launch desktop ==="
 # Landscape lock
