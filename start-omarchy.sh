@@ -24,8 +24,10 @@ else
     --es displayStretch true --es adjustResolution true \
     --es displayFilteringMode nearest --es displayScale 100 \
     --es fullscreen true --es forceOrientation landscape --es hideCutout true \
-    --es showAdditionalKbd false --es additionalKbdVisible false \
-    --es Reseed false --es PIP false >/dev/null 2>&1
+    --ez showAdditionalKbd false --ez additionalKbdVisible false \
+    --ez showIMEWhileExternalConnected false \
+    --ez Reseed false --ez PIP false >/dev/null 2>&1
+  settings put secure show_ime_with_hard_keyboard 0 2>/dev/null || true
 fi
 
 pkill -9 termux-x11 2>/dev/null

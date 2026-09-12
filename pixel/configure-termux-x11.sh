@@ -28,6 +28,9 @@ fi
 # restarts and reboots; no root access or direct SharedPreferences edit needed.
 # Android may wait for the receiver while Termux:X11 is recreating its window;
 # cap that wait so shortcut and boot startup can never stall here.
+# Soft keyboard must stay down when scrcpy injects a host keyboard (UHID/SDK).
+# showIMEWhileExternalConnected=false is the Termux:X11 preference that matches
+# "Don't show soft keyboard when external keyboard is connected".
 timeout 8 am broadcast -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
   --es displayResolutionMode custom \
   --es displayResolutionCustom "$resolution" \
@@ -38,11 +41,18 @@ timeout 8 am broadcast -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
   --es fullscreen true \
   --es forceOrientation landscape \
   --es hideCutout true \
-  --es showAdditionalKbd false \
-  --es additionalKbdVisible false \
-  --es Reseed false \
-  --es PIP false \
+  --ez showAdditionalKbd false \
+  --ez additionalKbdVisible false \
+  --ez showIMEWhileExternalConnected false \
+  --ez Reseed false \
+  --ez PIP false \
   >/dev/null 2>&1 || true
 
+# Best-effort Android IME policy while Omarchy is the foreground desktop.
+# show_ime_with_hard_keyboard=0 hides Gboard when a hardware/UHID keyboard is present.
+settings put secure show_ime_with_hard_keyboard 0 2>/dev/null || true
+# Dismiss any already-visible IME (no-op if none).
+input keyevent KEYCODE_BACK 2>/dev/null || true
+
 printf '%s\n' "$resolution" > "${HOME:-/data/data/com.termux/files/home}/.omarchy-x11-resolution"
-echo "Termux:X11 configured: ${resolution}, landscape, fullscreen, extra keys hidden"
+echo "Termux:X11 configured: ${resolution}, landscape, fullscreen, soft keyboard hidden"
