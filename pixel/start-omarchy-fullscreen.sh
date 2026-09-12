@@ -34,6 +34,11 @@ pkill -9 foot 2>/dev/null
 pkill -9 waybar 2>/dev/null
 pkill -9 swaybg 2>/dev/null
 pkill -9 goose 2>/dev/null
+# The home-screen app is a clean full-session launch. Stop prior desktop app
+# instances so the new Sway session opens exactly one of each standard app.
+pkill -9 -f '/usr/lib/chromium/chromium.*chromium-omarchy' 2>/dev/null
+pkill -9 -f '/usr/bin/chromium.*chromium-omarchy' 2>/dev/null
+pkill -9 -f '/opt/1Password/1password' 2>/dev/null
 sleep 0.7
 rm -rf "$PREFIX/tmp/.X11-unix" 2>/dev/null
 mkdir -p "$PREFIX/tmp/.X11-unix"

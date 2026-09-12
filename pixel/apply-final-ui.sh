@@ -9,6 +9,7 @@ cp -f $SD/waybar-style.css $HOME/.config/waybar/style.css
 install -m 0755 $SD/omarchy-wallpaper $HOME/.local/bin/omarchy-wallpaper
 install -m 0755 $SD/omarchy-command $HOME/.local/bin/omarchy-command
 install -m 0755 $SD/omarchy-waybar $HOME/.local/bin/omarchy-waybar
+install -m 0755 $SD/omarchy-start-apps $HOME/.local/bin/omarchy-start-apps
 [ -f $SD/backgrounds/1-quattro.jpg ] && cp -f $SD/backgrounds/1-quattro.jpg $HOME/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg
 
 cat > $HOME/.config/sway/config << 'SWAY'
@@ -75,7 +76,8 @@ bar {
     swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
-exec /home/cody/.local/bin/omarchy-goose
+# Every full Omarchy boot starts the same idempotent standard app set.
+exec /home/cody/.local/bin/omarchy-start-apps
 SWAY
 
 cat > $HOME/.local/bin/omarchy-goose << 'GOOSE'

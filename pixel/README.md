@@ -24,7 +24,9 @@ bash ~/.shortcuts/Omarchy.sh
 
 The launcher configures Termux:X11 and nested Sway for the Pixel's native
 **2992×1344 landscape** surface, enables Android immersive fullscreen, and hides
-the Termux:X11 extra-key bar. Override the X resolution when needed:
+the Termux:X11 extra-key bar. Every Android auto-boot and home-screen **Omarchy**
+app click starts a clean desktop session with exactly one **Foot terminal, Goose,
+Chromium, and 1Password** window. Override the X resolution when needed:
 
 ```bash
 OMARCHY_X11_RESOLUTION=1920x1080 bash ~/configure-termux-x11.sh

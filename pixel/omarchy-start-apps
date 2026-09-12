@@ -1,6 +1,6 @@
 #!/bin/bash
-# Launch goose + chromium + 1Password desktop on live Omarchy session.
-# Run from foot inside Arch, after sway is up (e.g. via Omarchy.sh shortcut first).
+# Start exactly one standard app set for each Pixel Omarchy/Sway session:
+# terminal + Goose desktop + Chromium + 1Password.
 set +e
 export HOME="${HOME:-/home/cody}"
 export PATH="$HOME/.local/bin:/opt/1Password:/usr/bin:$PATH"
@@ -8,39 +8,69 @@ export DISPLAY="${DISPLAY:-:0}"
 export LIBGL_ALWAYS_SOFTWARE=1
 export ELECTRON_OZONE_PLATFORM_HINT=x11
 
-# goose
-if ! pgrep -x goose >/dev/null 2>&1; then
-  if [ -x "$HOME/.local/bin/omarchy-goose" ]; then
-    "$HOME/.local/bin/omarchy-goose" >/tmp/goose.log 2>&1 &
-  else
-    foot --app-id=omarchy-goose --title=Goose bash -lc 'cd "$HOME"; exec goose' >/tmp/goose.log 2>&1 &
-  fi
-fi
+LOG=/sdcard/omarchy-pixel/start-apps.log
+RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
+SWAY_PID="$(pgrep -x sway | head -1)"
+STAMP="$RUNTIME_DIR/omarchy-start-apps.${SWAY_PID:-unknown}.done"
+mkdir -p "$RUNTIME_DIR" "$(dirname "$LOG")" 2>/dev/null || true
 
-# chromium
-if ! pgrep -x chromium >/dev/null 2>&1; then
-  if [ -x "$HOME/.local/bin/omarchy-chromium" ]; then
-    "$HOME/.local/bin/omarchy-chromium" "${1:-https://archlinux.org}" >/tmp/chromium.log 2>&1 &
-  else
-    /usr/bin/chromium --user-data-dir="$HOME/.config/chromium-omarchy" \
-      --ozone-platform=x11 --disable-gpu --no-sandbox --disable-dev-shm-usage \
-      --in-process-gpu "${1:-https://archlinux.org}" >/tmp/chromium.log 2>&1 &
-  fi
+# Sway may execute this more than once during config reloads. The compositor PID
+# makes this guard session-scoped, so every full boot starts apps exactly once.
+if [[ -f $STAMP ]]; then
+  echo "$(date -Iseconds) already started for sway=${SWAY_PID:-unknown}" >>"$LOG"
+  exit 0
 fi
+: >"$STAMP"
+{
+  echo "START $(date -Iseconds) sway=${SWAY_PID:-unknown} display=$DISPLAY"
 
-# 1Password desktop
-if ! pgrep -f '/opt/1Password/1password' >/dev/null 2>&1; then
-  if [ -x "$HOME/.local/bin/1password" ]; then
-    "$HOME/.local/bin/1password" >/tmp/1password.log 2>&1 &
-  elif [ -x /opt/1Password/1password ]; then
-    (cd /opt/1Password && ./1password --no-sandbox --disable-gpu \
-      --ozone-platform=x11 --in-process-gpu --disable-dev-shm-usage >/tmp/1password.log 2>&1 &)
-  else
-    echo "1Password desktop not installed. Run install-1password-desktop.sh" >&2
+  # One normal shell in addition to the dedicated Goose terminal.
+  if ! pgrep -af 'foot .*--app-id=omarchy-terminal' >/dev/null 2>&1; then
+    foot --app-id=omarchy-terminal --title='Pixel Terminal' > /tmp/omarchy-terminal.log 2>&1 &
   fi
-fi
 
-sleep 2
-echo "goose: $(pgrep -c -x goose 2>/dev/null || echo 0)"
-echo "chromium: $(pgrep -c chromium 2>/dev/null || echo 0)"
-echo "1password: $(pgrep -c -f '/opt/1Password/1password' 2>/dev/null || echo 0)"
+  # Goose desktop (its dedicated Foot window).
+  if ! pgrep -x goose >/dev/null 2>&1; then
+    if [[ -x $HOME/.local/bin/omarchy-goose ]]; then
+      "$HOME/.local/bin/omarchy-goose" > /tmp/goose.log 2>&1 &
+    else
+      foot --app-id=omarchy-goose --title=Goose bash -lc 'cd "$HOME"; exec goose' > /tmp/goose.log 2>&1 &
+    fi
+  fi
+
+  # One Chromium browser window/profile. Chromium uses multiple processes, so
+  # check for the unique Omarchy profile rather than process count.
+  if ! pgrep -af -- '--user-data-dir=.*/\.config/chromium-omarchy' >/dev/null 2>&1; then
+    if [[ -x $HOME/.local/bin/omarchy-chromium ]]; then
+      "$HOME/.local/bin/omarchy-chromium" "${OMARCHY_START_URL:-https://archlinux.org}" > /tmp/chromium.log 2>&1 &
+    else
+      /usr/bin/chromium --user-data-dir="$HOME/.config/chromium-omarchy" \
+        --ozone-platform=x11 --disable-gpu --no-sandbox --disable-dev-shm-usage \
+        --in-process-gpu "${OMARCHY_START_URL:-https://archlinux.org}" > /tmp/chromium.log 2>&1 &
+    fi
+  fi
+
+  # One 1Password desktop window.
+  if ! pgrep -f '/opt/1Password/1password' >/dev/null 2>&1; then
+    if [[ -x $HOME/.local/bin/1password ]]; then
+      "$HOME/.local/bin/1password" > /tmp/1password.log 2>&1 &
+    elif [[ -x /opt/1Password/1password ]]; then
+      (cd /opt/1Password && exec ./1password --no-sandbox --disable-gpu \
+        --ozone-platform=x11 --in-process-gpu --disable-dev-shm-usage) > /tmp/1password.log 2>&1 &
+    else
+      echo "WARN: 1Password desktop is not installed"
+    fi
+  fi
+
+  # Record readiness without blocking Sway startup.
+  for _ in $(seq 1 20); do
+    terminal=0; goose=0; chromium=0; onepassword=0
+    pgrep -af 'foot .*--app-id=omarchy-terminal' >/dev/null 2>&1 && terminal=1
+    pgrep -x goose >/dev/null 2>&1 && goose=1
+    pgrep -af -- '--user-data-dir=.*/\.config/chromium-omarchy' >/dev/null 2>&1 && chromium=1
+    pgrep -f '/opt/1Password/1password' >/dev/null 2>&1 && onepassword=1
+    [[ $terminal$goose$chromium$onepassword == 1111 ]] && break
+    sleep 0.5
+  done
+  echo "READY terminal=$terminal goose=$goose chromium=$chromium 1password=$onepassword $(date -Iseconds)"
+} >>"$LOG" 2>&1

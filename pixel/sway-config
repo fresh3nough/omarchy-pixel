@@ -62,4 +62,6 @@ bar {
     swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
-exec /home/cody/.local/bin/omarchy-goose
+# Every full Omarchy boot (Android boot hook or home-screen app) starts exactly
+# one terminal, Goose desktop, Chromium, and 1Password.
+exec /home/cody/.local/bin/omarchy-start-apps
