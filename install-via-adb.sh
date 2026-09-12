@@ -135,7 +135,10 @@ adb push "$STAGING/ADD-HOME-SHORTCUT.txt" "$SDCARD_DIR/ADD-HOME-SHORTCUT.txt" | 
 adb push "$STAGING/omarchy-env" "$SDCARD_DIR/omarchy-env" | tee -a "$LOG"
 adb push "$STAGING/run-setup.sh" "$SDCARD_DIR/run-setup.sh" | tee -a "$LOG"
 adb push "$STAGING/bootstrap-on-device.sh" "$SDCARD_DIR/bootstrap-on-device.sh" | tee -a "$LOG"
-adb shell "chmod 755 $SDCARD_DIR/*.sh $SDCARD_DIR/Omarchy 2>/dev/null; ls -la $SDCARD_DIR" | tr -d '\r' | tee -a "$LOG"
+adb shell "mkdir -p $SDCARD_DIR/staging" | tee -a "$LOG"
+adb push "$STAGING/goose-desktop" "$SDCARD_DIR/goose-desktop" | tee -a "$LOG"
+adb push "$STAGING/goose-desktop" "$SDCARD_DIR/staging/goose-desktop" | tee -a "$LOG"
+adb shell "chmod 755 $SDCARD_DIR/*.sh $SDCARD_DIR/Omarchy $SDCARD_DIR/goose-desktop $SDCARD_DIR/staging/goose-desktop 2>/dev/null; ls -la $SDCARD_DIR" | tr -d '\r' | tee -a "$LOG"
 
 # Wake + unlock-ish
 adb shell input keyevent KEYCODE_WAKEUP 2>/dev/null || true
@@ -290,6 +293,6 @@ echo "============================================"
 echo " Phone next steps:"
 echo "  1. Long-press home → Widgets → Termux:Widget → Omarchy"
 echo "  2. Or Termux: ./start-omarchy.sh"
-echo " Binds: SUPER+Return=foot  SUPER+K=keyboard  SUPER+G=goose"
+echo " Binds: SUPER+Return=foot  SUPER+K=keyboard  SUPER+G=goose-desktop  SUPER+Shift+G=goose-cli"
 echo " Setup log: $SETUP_LOG"
 echo "============================================"

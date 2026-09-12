@@ -1,7 +1,8 @@
 === OMARCHY ON PIXEL - COMPLETE ===
 
 WHAT EXISTS:
-- setup-omarchy-pixel.sh  (uses foot, not kitty; installs goose desktop)
+- setup-omarchy-pixel.sh  (uses foot, not kitty; installs goose desktop + goose-desktop launcher with --no-zygote)
+- staging/goose-desktop   (proot-safe Electron wrapper; SUPER+G)
 - start-omarchy.sh         (launcher script)
 - app/AndroidManifest.xml  (Omarchy.apk wrapper)
 - app/src/                 (MainActivity.java - launches Termux shortcut)

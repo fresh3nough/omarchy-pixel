@@ -186,12 +186,14 @@ input {
 }
 
 # Mobile binds — foot terminal + on-screen keyboard + goose
+# SUPER+G → Goose Desktop (Electron, proot-safe --no-zygote wrapper)
+# SUPER+Shift+G → goose CLI
 bind = SUPER, Return, exec, foot
 bind = SUPER, T, exec, foot
 bind = SUPER, K, exec, wvkbd-mobintl -L 240
 bind = SUPER SHIFT, K, exec, pkill wvkbd-mobintl
-bind = SUPER, G, exec, goose
-bind = SUPER SHIFT, G, exec, Goose
+bind = SUPER, G, exec, goose-desktop
+bind = SUPER SHIFT, G, exec, goose
 bind = SUPER, Q, killactive,
 bind = SUPER, F, fullscreen,
 
@@ -485,6 +487,23 @@ chown -R cody:cody /home/cody/.local /home/cody/.config
 '
 
 log "6/7 Installing goose desktop assets check + PATH"
+# Stage launcher onto sdcard before proot so Arch can install it
+GOOSE_DESKTOP_SRC=""
+for cand in \
+  "$HOME_DIR/goose-desktop" \
+  /sdcard/omarchy-pixel/goose-desktop \
+  /sdcard/omarchy-pixel/staging/goose-desktop \
+  "$(cd "$(dirname "$0")" && pwd)/staging/goose-desktop"
+do
+  [ -f "$cand" ] && GOOSE_DESKTOP_SRC="$cand" && break
+done
+if [ -n "${GOOSE_DESKTOP_SRC:-}" ]; then
+  mkdir -p /sdcard/omarchy-pixel/staging 2>/dev/null || true
+  cp -f "$GOOSE_DESKTOP_SRC" /sdcard/omarchy-pixel/goose-desktop 2>/dev/null || true
+  cp -f "$GOOSE_DESKTOP_SRC" /sdcard/omarchy-pixel/staging/goose-desktop 2>/dev/null || true
+  chmod 755 /sdcard/omarchy-pixel/goose-desktop /sdcard/omarchy-pixel/staging/goose-desktop 2>/dev/null || true
+fi
+
 proot-distro login archlinux -- bash -c '
 set -e
 if [ -x /home/cody/.local/bin/goose ]; then
@@ -499,6 +518,99 @@ else
     BIN=\$(find . -type f -name goose | head -n1)
     install -m 755 \"\$BIN\" /home/cody/.local/bin/goose
   "
+fi
+
+# Goose Desktop .deb (Electron app under /usr/lib/goose) when missing
+if [ ! -x /usr/lib/goose/Goose ]; then
+  echo "Installing Goose Desktop package..."
+  tmp=$(mktemp -d)
+  if curl -fL -o "$tmp/goose.deb" "'"${GOOSE_DEB_URL}"'"; then
+    cd "$tmp"
+    if command -v bsdtar >/dev/null 2>&1; then bsdtar -xf goose.deb; else ar x goose.deb 2>/dev/null || true; fi
+    data_tar=$(find . -maxdepth 1 -type f -name "data.tar.*" | head -1 || true)
+    if [ -n "$data_tar" ]; then
+      mkdir -p root
+      case "$data_tar" in
+        *.xz) tar -xJf "$data_tar" -C root ;;
+        *.gz) tar -xzf "$data_tar" -C root ;;
+        *.zst) tar --zstd -xf "$data_tar" -C root ;;
+        *) tar -xf "$data_tar" -C root ;;
+      esac
+      if [ -d root/usr/lib/goose ]; then
+        mkdir -p /usr/lib/goose
+        cp -a root/usr/lib/goose/. /usr/lib/goose/
+        echo "Goose Desktop extracted to /usr/lib/goose"
+      fi
+    fi
+  else
+    echo "WARN: Goose Desktop deb download failed"
+  fi
+  rm -rf "$tmp"
+fi
+
+# Proot-safe Goose Desktop launcher (--no-zygote required)
+mkdir -p /home/cody/.local/bin /home/cody/.local/share/applications
+if [ -f /sdcard/omarchy-pixel/goose-desktop ]; then
+  install -m 0755 /sdcard/omarchy-pixel/goose-desktop /home/cody/.local/bin/goose-desktop
+elif [ -f /sdcard/omarchy-pixel/staging/goose-desktop ]; then
+  install -m 0755 /sdcard/omarchy-pixel/staging/goose-desktop /home/cody/.local/bin/goose-desktop
+else
+  cat > /home/cody/.local/bin/goose-desktop << "GDESK"
+#!/bin/bash
+# Goose Desktop launcher for Omarchy/PRoot — --no-zygote required under proot
+set -euo pipefail
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
+mkdir -p "$XDG_RUNTIME_DIR"; chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+export DISPLAY="${DISPLAY:-:1}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  if [[ -S $XDG_RUNTIME_DIR/wayland-1 ]]; then export WAYLAND_DISPLAY=wayland-1
+  elif [[ -S /tmp/wayland-1 ]]; then export XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=wayland-1
+  fi
+fi
+export LANG="${LANG:-C.UTF-8}" LC_ALL="${LC_ALL:-C.UTF-8}"
+export LIBGL_ALWAYS_SOFTWARE=1 ELECTRON_OZONE_PLATFORM_HINT=x11
+export GOOSE_DISABLE_KEYRING="${GOOSE_DISABLE_KEYRING:-1}" GLYCIN_DISABLE_SANDBOX=1
+[[ -f $HOME/.config/goose/env.sh ]] && . "$HOME/.config/goose/env.sh"
+export GOOSE_MAX_TOKENS="${GOOSE_MAX_TOKENS:-32768}"
+export GOOSE_PROVIDER="${GOOSE_PROVIDER:-openrouter}"
+export GOOSE_MODEL="${GOOSE_MODEL:-x-ai/grok-4.5}"
+export OPENROUTER_HOST="${OPENROUTER_HOST:-https://openrouter.ai}"
+BIN=/usr/lib/goose/Goose
+[[ -x $BIN ]] || BIN="$HOME/.local/share/Goose/Goose"
+[[ -x $BIN ]] || { echo "goose desktop binary not found" >&2; exit 1; }
+cfg="$HOME/.config/Goose"
+if [[ -L $cfg/SingletonLock ]]; then
+  lock_pid="$(readlink "$cfg/SingletonLock" 2>/dev/null | sed "s/.*-//")"
+  if [[ $lock_pid =~ ^[0-9]+$ ]] && ! kill -0 "$lock_pid" 2>/dev/null; then
+    rm -f "$cfg/SingletonLock" "$cfg/SingletonSocket" "$cfg/SingletonCookie"
+  fi
+fi
+exec "$BIN" --no-sandbox --disable-setuid-sandbox --disable-seccomp-filter-sandbox \
+  --disable-dev-shm-usage --no-zygote --disable-gpu --disable-gpu-compositing \
+  --disable-gpu-sandbox --use-gl=angle --use-angle=swiftshader --in-process-gpu \
+  --ozone-platform=x11 "$@"
+GDESK
+  chmod 755 /home/cody/.local/bin/goose-desktop
+fi
+chown cody:cody /home/cody/.local/bin/goose-desktop 2>/dev/null || true
+cat > /home/cody/.local/share/applications/goose-desktop.desktop << DESK
+[Desktop Entry]
+Name=Goose Desktop
+Comment=goose Desktop (Electron) — Omarchy/PRoot safe launcher
+Exec=/home/cody/.local/bin/goose-desktop %U
+Icon=/usr/share/pixmaps/goose.png
+Terminal=false
+Type=Application
+Categories=Development;
+StartupWMClass=Goose
+DESK
+chown -R cody:cody /home/cody/.local/share/applications 2>/dev/null || true
+if grep -q -- "--no-zygote" /home/cody/.local/bin/goose-desktop; then
+  echo "goose-desktop launcher OK (no-zygote)"
+else
+  echo "WARN: goose-desktop launcher missing --no-zygote"
 fi
 # Ensure foot present
 command -v foot && foot --version || pacman -S --noconfirm foot
@@ -528,7 +640,8 @@ BINDS:
   SUPER+Return  foot terminal
   SUPER+T       foot terminal
   SUPER+K       on-screen keyboard
-  SUPER+G       goose
+  SUPER+G       goose-desktop (Electron, proot-safe)
+  SUPER+Shift+G goose CLI
   SUPER+Q       close window
 
 MANUAL:

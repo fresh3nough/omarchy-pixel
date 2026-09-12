@@ -91,7 +91,8 @@ This will:
 |----------|---------|
 | **SUPER + Return** | Foot key (fullscreen overlay) |
 | **SUPER + K** | Switch to keyboard mode |
-| **SUPER + G** | Goose desktop app |
+| **SUPER + G** | Goose Desktop (`goose-desktop`, proot-safe) |
+| **SUPER + Shift + G** | goose CLI |
 
 ### Method 2: Using the App on Home Screen
 
@@ -112,7 +113,8 @@ To verify the setup worked:
 3. Try the keybindings:
    - **SUPER + Return** - toggle foot mode
    - **SUPER + K** - switch between keyboard and desktop modes
-   - **SUPER + G** - launch Goose desktop
+   - **SUPER + G** - launch Goose Desktop (`goose-desktop` with `--no-zygote`)
+   - **SUPER + Shift + G** - goose CLI
 
 ## Troubleshooting
 
@@ -147,7 +149,7 @@ omarchy-pixel/
 
 - **Foot key**: Use **SUPER + Return** to enter foot mode (overlay mode)
 - **Keyboard mode**: Use **SUPER + K** to switch to keyboard navigation
-- **Goose app**: Use **SUPER + G** to launch the Goose desktop interface
+- **Goose Desktop**: Use **SUPER + G** → `goose-desktop`. Under proot, Electron needs `--no-zygote` (and the usual `--no-sandbox` / software GL flags) or the process exits immediately. **SUPER + Shift + G** launches the CLI.
 - The setup uses **proot-distro** to run Arch Linux inside Termux, allowing full desktop experience
 - All scripts are designed for **aarch64** (ARM64) architecture
 

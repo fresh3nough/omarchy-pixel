@@ -16,5 +16,6 @@ Automatic boot:
   then starts the same fullscreen Omarchy session.
 
 Binds:
-  Super+G Goose | Super+B Chromium | Super+P 1Password
+  Super+G Goose Desktop (goose-desktop, --no-zygote) | Super+Shift+G goose CLI
+  Super+B Chromium | Super+P 1Password
   Super+Return Foot | Super+F Fullscreen
