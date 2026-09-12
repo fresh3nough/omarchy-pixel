@@ -1,7 +1,10 @@
 set $mod Mod4
 set $term foot
 set $browser /home/cody/.local/bin/omarchy-chromium
-set $goosebin /home/cody/.local/bin/omarchy-goose
+set $goosebin /home/cody/.local/bin/goose-desktop
+set $goosecli /home/cody/.local/bin/omarchy-goose
+set $code /home/cody/.local/bin/omarchy-code
+set $files /home/cody/.local/bin/omarchy-files
 set $onepass /home/cody/.local/bin/1password
 
 # The wlroots X11 backend otherwise defaults to 1024x768 even when
@@ -23,10 +26,14 @@ client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
 # Proportional sizing stays usable on the native 2992x1344 output and mirrored monitors.
-for_window [app_id="omarchy-rice"] border pixel 2
-for_window [app_id="window-arrange"] border pixel 2
 for_window [app_id="omarchy-command-menu"] floating enable, sticky enable, border pixel 2, resize set width 44 ppt height 54 ppt, move position center
 for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 42 ppt height 82 ppt, move position 1 ppt 6 ppt
+for_window [app_id="thunar"] border pixel 2
+# Electron Goose Desktop / VS Code (X11/Xwayland class)
+for_window [class="goose"] border pixel 2
+for_window [class="Goose"] border pixel 2
+for_window [class="Code"] border pixel 2
+for_window [class="code"] border pixel 2
 for_window [class="Chromium"] border pixel 2
 for_window [class="1Password"] border pixel 2
 
@@ -35,7 +42,11 @@ bindsym $mod+t exec $term
 # Super+W matches host Omarchy ("close window"). Super+Q kept as alias.
 bindsym $mod+w kill
 bindsym $mod+q kill
+# SUPER+G → Goose Desktop (Electron, proot-safe). SUPER+Shift+G → CLI in foot.
 bindsym $mod+g exec $goosebin
+bindsym $mod+Shift+g exec $goosecli
+bindsym $mod+c exec $code
+bindsym $mod+e exec $files
 bindsym $mod+k exec /home/cody/.local/bin/omarchy-command
 bindsym $mod+b exec $browser
 bindsym $mod+p exec $onepass
@@ -92,5 +103,5 @@ exec_always /home/cody/.local/bin/omarchy-wallpaper
 # Host scrcpy Super bridge: apply commands written to /sdcard/omarchy-pixel/super.cmd
 exec_always /home/cody/.local/bin/omarchy-super-bridge
 # Every full Omarchy boot (Android boot hook or home-screen app) starts exactly
-# one terminal, Goose desktop, Chromium, and 1Password.
+# one terminal, Goose desktop (via goose-desktop --no-zygote), Chromium, and 1Password.
 exec /home/cody/.local/bin/omarchy-start-apps

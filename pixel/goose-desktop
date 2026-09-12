@@ -1,0 +1,73 @@
+#!/bin/bash
+# Goose Desktop launcher for Omarchy/PRoot (software GL + X11 via Xwayland).
+# Electron's zygote crashes under proot ("write: Broken pipe"); --no-zygote is required.
+set -euo pipefail
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+
+# Prefer live display from environment; fall back to known session values
+export DISPLAY="${DISPLAY:-:1}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  if [[ -S $XDG_RUNTIME_DIR/wayland-1 ]]; then export WAYLAND_DISPLAY=wayland-1
+  elif [[ -S $XDG_RUNTIME_DIR/wayland-0 ]]; then export WAYLAND_DISPLAY=wayland-0
+  elif [[ -S /tmp/wayland-1 ]]; then export XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=wayland-1
+  elif [[ -S /tmp/wayland-0 ]]; then export XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=wayland-0
+  fi
+fi
+
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export ELECTRON_OZONE_PLATFORM_HINT=x11
+export GOOSE_DISABLE_KEYRING="${GOOSE_DISABLE_KEYRING:-1}"
+export GLYCIN_DISABLE_SANDBOX=1
+
+# Shared goose provider env
+if [[ -f $HOME/.config/goose/env.sh ]]; then
+  # shellcheck disable=SC1091
+  . "$HOME/.config/goose/env.sh"
+fi
+
+# Cap response tokens — model default (450k) causes OpenRouter 402s / truncation issues
+export GOOSE_MAX_TOKENS="${GOOSE_MAX_TOKENS:-32768}"
+export GOOSE_PROVIDER="${GOOSE_PROVIDER:-openrouter}"
+export GOOSE_MODEL="${GOOSE_MODEL:-x-ai/grok-4.5}"
+export OPENROUTER_HOST="${OPENROUTER_HOST:-https://openrouter.ai}"
+
+BIN=/usr/lib/goose/Goose
+if [[ ! -x $BIN ]]; then
+  if [[ -x $HOME/.local/share/Goose/Goose ]]; then
+    BIN="$HOME/.local/share/Goose/Goose"
+  else
+    echo "goose desktop binary not found at /usr/lib/goose/Goose" >&2
+    exit 1
+  fi
+fi
+
+# Drop stale Electron single-instance locks left by crashed launches
+cfg="${HOME}/.config/Goose"
+if [[ -L $cfg/SingletonLock ]]; then
+  lock_tgt="$(readlink "$cfg/SingletonLock" 2>/dev/null || true)"
+  lock_pid="${lock_tgt##*-}"
+  if [[ -n $lock_pid && $lock_pid =~ ^[0-9]+$ ]] && ! kill -0 "$lock_pid" 2>/dev/null; then
+    rm -f "$cfg/SingletonLock" "$cfg/SingletonSocket" "$cfg/SingletonCookie"
+  fi
+fi
+
+exec "$BIN" \
+  --no-sandbox \
+  --disable-setuid-sandbox \
+  --disable-seccomp-filter-sandbox \
+  --disable-dev-shm-usage \
+  --no-zygote \
+  --disable-gpu \
+  --disable-gpu-compositing \
+  --disable-gpu-sandbox \
+  --use-gl=angle \
+  --use-angle=swiftshader \
+  --in-process-gpu \
+  --ozone-platform=x11 \
+  "$@"

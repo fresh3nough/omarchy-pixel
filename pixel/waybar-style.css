@@ -1,8 +1,15 @@
 * { border: none; border-radius: 0; font-family: "DejaVu Sans Mono", monospace; font-size: 13px; min-height: 0; }
 window#waybar { background: rgba(26, 27, 38, 0.97); color: #a9b1d6; border-bottom: 2px solid #7aa2f7; }
-#custom-menu, #custom-term, #custom-rice, #custom-arrange, #custom-goose, #custom-browser, #custom-onepass { padding: 0 13px; margin: 3px 2px; color: #c0caf5; background: #292e42; border: 1px solid #414868; border-radius: 8px; font-weight: bold; }
+#custom-menu, #custom-term, #custom-goose-desktop, #custom-goose-cli, #custom-code, #custom-files, #custom-browser, #custom-onepass {
+  padding: 0 13px; margin: 3px 2px; color: #c0caf5; background: #292e42; border: 1px solid #414868; border-radius: 8px; font-weight: bold;
+}
 #custom-menu { min-width: 32px; color: #1a1b26; background: #7aa2f7; font-size: 21px; }
-#custom-rice { color: #9ece6a; } #custom-arrange { color: #e0af68; } #custom-goose { color: #bb9af7; } #custom-browser { color: #7dcfff; } #custom-onepass { color: #f7768e; }
+#custom-goose-desktop { color: #bb9af7; }
+#custom-goose-cli { color: #c0caf5; }
+#custom-code { color: #7aa2f7; }
+#custom-files { color: #e0af68; }
+#custom-browser { color: #7dcfff; }
+#custom-onepass { color: #f7768e; }
 #workspaces button { padding: 0 9px; color: #565f89; background: transparent; }
 #workspaces button.focused { color: #c0caf5; background: #292e42; border-bottom: 2px solid #7aa2f7; }
 #clock { padding: 0 12px; color: #c0caf5; font-weight: bold; font-size: 14px; }

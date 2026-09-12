@@ -1,0 +1,63 @@
+#!/bin/bash
+# Visual Studio Code launcher for Omarchy/PRoot (software GL + X11 via Xwayland).
+# Mirrors the Electron flags used by goose-desktop / 1password under Termux:X11.
+set -euo pipefail
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+
+export DISPLAY="${DISPLAY:-:1}"
+if [[ -z ${WAYLAND_DISPLAY:-} ]]; then
+  if [[ -S $XDG_RUNTIME_DIR/wayland-1 ]]; then export WAYLAND_DISPLAY=wayland-1
+  elif [[ -S $XDG_RUNTIME_DIR/wayland-0 ]]; then export WAYLAND_DISPLAY=wayland-0
+  elif [[ -S /tmp/wayland-1 ]]; then export XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=wayland-1
+  elif [[ -S /tmp/wayland-0 ]]; then export XDG_RUNTIME_DIR=/tmp WAYLAND_DISPLAY=wayland-0
+  fi
+fi
+
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export LIBGL_ALWAYS_SOFTWARE=1
+export ELECTRON_OZONE_PLATFORM_HINT=x11
+export GLYCIN_DISABLE_SANDBOX=1
+
+BIN=""
+for cand in \
+  "$HOME/.local/share/VSCode-linux-arm64/bin/code" \
+  /opt/VSCode-linux-arm64/bin/code \
+  /usr/bin/code \
+  /usr/share/code/bin/code
+do
+  if [[ -x $cand ]]; then
+    BIN=$cand
+    break
+  fi
+done
+if [[ -z $BIN ]]; then
+  if command -v code >/dev/null 2>&1; then
+    BIN=$(command -v code)
+  else
+    echo "Visual Studio Code binary not found. Install arm64 build under ~/.local/share/VSCode-linux-arm64" >&2
+    exit 1
+  fi
+fi
+
+# User data stays under the standard Code config dir.
+mkdir -p "$HOME/.config/Code/User" "$HOME/.vscode"
+if [[ ! -f $HOME/.config/Code/User/settings.json ]]; then
+  printf '{\n  "update.mode": "none",\n  "window.titleBarStyle": "custom",\n  "security.workspace.trust.enabled": false\n}\n' \
+    >"$HOME/.config/Code/User/settings.json"
+fi
+
+exec "$BIN" \
+  --no-sandbox \
+  --disable-setuid-sandbox \
+  --disable-dev-shm-usage \
+  --disable-gpu \
+  --disable-gpu-compositing \
+  --disable-gpu-sandbox \
+  --in-process-gpu \
+  --ozone-platform=x11 \
+  "$@"

@@ -1,7 +1,10 @@
 set $mod Mod4
 set $term foot
 set $browser /home/cody/.local/bin/omarchy-chromium
-set $goosebin /home/cody/.local/bin/omarchy-goose
+set $goosebin /home/cody/.local/bin/goose-desktop
+set $goosecli /home/cody/.local/bin/omarchy-goose
+set $code /home/cody/.local/bin/omarchy-code
+set $files /home/cody/.local/bin/omarchy-files
 set $onepass /home/cody/.local/bin/1password
 
 # The wlroots X11 backend otherwise defaults to 1024x768 even when
@@ -23,17 +26,28 @@ client.urgent           #f7768e #1a1b26 #c0caf5 #f7768e #f7768e
 
 for_window [app_id="foot"] border pixel 2
 # Proportional sizing stays usable on the native 2992x1344 output and mirrored monitors.
-for_window [app_id="omarchy-rice"] border pixel 2
-for_window [app_id="window-arrange"] border pixel 2
 for_window [app_id="omarchy-command-menu"] floating enable, sticky enable, border pixel 2, resize set width 44 ppt height 54 ppt, move position center
 for_window [app_id="omarchy-goose"] floating enable, border pixel 2, resize set width 42 ppt height 82 ppt, move position 1 ppt 6 ppt
+for_window [app_id="thunar"] border pixel 2
+# Electron Goose Desktop / VS Code (X11/Xwayland class)
+for_window [class="goose"] border pixel 2
+for_window [class="Goose"] border pixel 2
+for_window [class="Code"] border pixel 2
+for_window [class="code"] border pixel 2
 for_window [class="Chromium"] border pixel 2
 for_window [class="1Password"] border pixel 2
 
 bindsym $mod+Return exec $term
 bindsym $mod+t exec $term
+# Super+W matches host Omarchy ("close window"). Super+Q kept as alias.
+bindsym $mod+w kill
 bindsym $mod+q kill
+# SUPER+G → Goose Desktop (Electron, proot-safe). SUPER+Shift+G → CLI in foot.
 bindsym $mod+g exec $goosebin
+bindsym $mod+Shift+g exec $goosecli
+bindsym $mod+c exec $code
+bindsym $mod+e exec $files
+bindsym $mod+k exec /home/cody/.local/bin/omarchy-command
 bindsym $mod+b exec $browser
 bindsym $mod+p exec $onepass
 bindsym $mod+f fullscreen
@@ -47,6 +61,30 @@ bindsym $mod+Left focus left
 bindsym $mod+Right focus right
 bindsym $mod+Up focus up
 bindsym $mod+Down focus down
+# Vim-style focus (Super+K stays command menu on host; H/J/L/I used there).
+bindsym $mod+h focus left
+bindsym $mod+l focus right
+bindsym $mod+j focus down
+bindsym $mod+i focus up
+bindsym $mod+Tab focus next
+bindsym $mod+Shift+Tab focus prev
+
+# Mirror control keys: host Super chords are translated to bare F-keys.
+# This bypasses Android's interception of physical META/Super.
+# Focus left/right/up/down/next/prev also arrive via omarchy-super-bridge
+# (pixel-mirror-cmd) because direction keys cannot be F-key encoded cleanly.
+bindsym F1 workspace number 1
+bindsym F2 workspace number 2
+bindsym F3 workspace number 3
+bindsym F5 kill
+bindsym F6 exec /home/cody/.local/bin/omarchy-command
+bindsym F7 exec $term
+bindsym F8 exec $goosebin
+bindsym F9 exec $browser
+bindsym F10 exec $onepass
+bindsym F11 fullscreen
+bindsym F12 floating toggle
+# End mirror control keys.
 
 input type:touch {
     tap enabled
@@ -62,6 +100,8 @@ bar {
     swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
+# Host scrcpy Super bridge: apply commands written to /sdcard/omarchy-pixel/super.cmd
+exec_always /home/cody/.local/bin/omarchy-super-bridge
 # Every full Omarchy boot (Android boot hook or home-screen app) starts exactly
-# one terminal, Goose desktop, Chromium, and 1Password.
+# one terminal, Goose desktop (via goose-desktop --no-zygote), Chromium, and 1Password.
 exec /home/cody/.local/bin/omarchy-start-apps

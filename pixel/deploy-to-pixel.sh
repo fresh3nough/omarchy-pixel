@@ -48,6 +48,9 @@ adb push "$ROOT/boot-omarchy.sh" "$SD/boot-omarchy.sh" >/dev/null
 adb push "$ROOT/Omarchy.sh" "$SD/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
+adb push "$ROOT/goose-desktop" "$SD/goose-desktop" >/dev/null 2>/dev/null || true
+adb push "$ROOT/omarchy-code" "$SD/omarchy-code" >/dev/null 2>/dev/null || true
+adb push "$ROOT/omarchy-files" "$SD/omarchy-files" >/dev/null 2>/dev/null || true
 adb push "$ROOT/omarchy-start-apps" "$SD/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD/omarchy-command" >/dev/null
 adb push "$ROOT/omarchy-waybar" "$SD/omarchy-waybar" >/dev/null
@@ -65,6 +68,9 @@ adb push "$ROOT/boot-omarchy.sh" "$SD_RICE/pixel/boot-omarchy.sh" >/dev/null
 adb push "$ROOT/Omarchy.sh" "$SD_RICE/pixel/Omarchy.sh" >/dev/null
 adb push "$ROOT/omarchy-chromium" "$SD_RICE/pixel/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
+adb push "$ROOT/goose-desktop" "$SD_RICE/pixel/goose-desktop" >/dev/null 2>/dev/null || true
+adb push "$ROOT/omarchy-code" "$SD_RICE/pixel/omarchy-code" >/dev/null 2>/dev/null || true
+adb push "$ROOT/omarchy-files" "$SD_RICE/pixel/omarchy-files" >/dev/null 2>/dev/null || true
 adb push "$ROOT/omarchy-start-apps" "$SD_RICE/pixel/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD_RICE/pixel/omarchy-command" >/dev/null
 adb push "$ROOT/omarchy-waybar" "$SD_RICE/pixel/omarchy-waybar" >/dev/null
@@ -183,6 +189,9 @@ install -m 0644 $SD/waybar-style.css ~/.config/waybar/style.css
 install -m 0755 $SD/omarchy-wallpaper ~/.local/bin/omarchy-wallpaper
 install -m 0755 $SD/omarchy-chromium ~/.local/bin/omarchy-chromium 2>/dev/null || true
 install -m 0755 $SD/omarchy-goose ~/.local/bin/omarchy-goose 2>/dev/null || true
+install -m 0755 $SD/goose-desktop ~/.local/bin/goose-desktop 2>/dev/null || true
+install -m 0755 $SD/omarchy-code ~/.local/bin/omarchy-code 2>/dev/null || true
+install -m 0755 $SD/omarchy-files ~/.local/bin/omarchy-files 2>/dev/null || true
 install -m 0755 $SD/omarchy-start-apps ~/.local/bin/omarchy-start-apps 2>/dev/null || true
 install -m 0755 $SD/omarchy-command ~/.local/bin/omarchy-command
 install -m 0755 $SD/omarchy-waybar ~/.local/bin/omarchy-waybar

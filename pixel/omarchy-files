@@ -1,0 +1,32 @@
+#!/bin/bash
+# File manager launcher for Omarchy Pixel (Thunar preferred).
+set -euo pipefail
+export HOME="${HOME:-/home/cody}"
+export PATH="$HOME/.local/bin:/usr/bin:$PATH"
+export DISPLAY="${DISPLAY:-:1}"
+export LANG="${LANG:-C.UTF-8}"
+export LC_ALL="${LC_ALL:-C.UTF-8}"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-$HOME/.run}"
+mkdir -p "$XDG_RUNTIME_DIR"
+chmod 700 "$XDG_RUNTIME_DIR" 2>/dev/null || true
+
+TARGET="${1:-$HOME}"
+
+if command -v thunar >/dev/null 2>&1; then
+  exec thunar "$TARGET"
+fi
+if command -v pcmanfm >/dev/null 2>&1; then
+  exec pcmanfm "$TARGET"
+fi
+if command -v nemo >/dev/null 2>&1; then
+  exec nemo "$TARGET"
+fi
+if command -v nautilus >/dev/null 2>&1; then
+  exec nautilus --no-desktop "$TARGET"
+fi
+if command -v xdg-open >/dev/null 2>&1; then
+  exec xdg-open "$TARGET"
+fi
+
+echo "No file manager found (expected thunar)" >&2
+exit 127
