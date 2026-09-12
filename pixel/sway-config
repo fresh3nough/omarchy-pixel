@@ -50,9 +50,18 @@ bindsym $mod+Left focus left
 bindsym $mod+Right focus right
 bindsym $mod+Up focus up
 bindsym $mod+Down focus down
+# Vim-style focus (Super+K stays command menu on host; H/J/L/I used there).
+bindsym $mod+h focus left
+bindsym $mod+l focus right
+bindsym $mod+j focus down
+bindsym $mod+i focus up
+bindsym $mod+Tab focus next
+bindsym $mod+Shift+Tab focus prev
 
 # Mirror control keys: host Super chords are translated to bare F-keys.
 # This bypasses Android's interception of physical META/Super.
+# Focus left/right/up/down/next/prev also arrive via omarchy-super-bridge
+# (pixel-mirror-cmd) because direction keys cannot be F-key encoded cleanly.
 bindsym F1 workspace number 1
 bindsym F2 workspace number 2
 bindsym F3 workspace number 3

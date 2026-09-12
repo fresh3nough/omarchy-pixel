@@ -103,8 +103,19 @@ handle_line() {
       run_sway workspace number "${1:-1}"
       ;;
     focus)
-      # focus left|right|up|down
-      run_sway focus "${1:-left}"
+      # focus left|right|up|down|next|prev
+      case "${1:-left}" in
+        next|n) run_sway focus next ;;
+        prev|previous|p) run_sway focus prev ;;
+        left|right|up|down) run_sway focus "$1" ;;
+        *) run_sway focus "${1:-left}" ;;
+      esac
+      ;;
+    focus-next|next)
+      run_sway focus next
+      ;;
+    focus-prev|prev|previous)
+      run_sway focus prev
       ;;
     raw)
       # raw <swaymsg args...>
