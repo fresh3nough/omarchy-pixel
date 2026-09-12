@@ -51,6 +51,7 @@ adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD/omarchy-command" >/dev/null
 adb push "$ROOT/omarchy-waybar" "$SD/omarchy-waybar" >/dev/null
+adb push "$ROOT/omarchy-super-bridge" "$SD/omarchy-super-bridge" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD/install-1password-desktop.sh" >/dev/null
 adb push "$ROOT/install-bwrap-stub.sh" "$SD/install-bwrap-stub.sh" >/dev/null
 adb push "$ROOT/sway-config" "$SD_RICE/pixel/sway-config" >/dev/null
@@ -67,6 +68,7 @@ adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD_RICE/pixel/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD_RICE/pixel/omarchy-command" >/dev/null
 adb push "$ROOT/omarchy-waybar" "$SD_RICE/pixel/omarchy-waybar" >/dev/null
+adb push "$ROOT/omarchy-super-bridge" "$SD_RICE/pixel/omarchy-super-bridge" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD_RICE/pixel/install-1password-desktop.sh" >/dev/null
 # Also keep install-pixel available
 if [ -f "$REPO/install-pixel.sh" ]; then
@@ -147,8 +149,8 @@ pad=10x10
 login-shell=yes
 dpi-aware=yes
 
-[colors]
-alpha=1.0
+# Arch foot 1.28: section is colors-dark; cursor has no color key.
+[colors-dark]
 foreground=a9b1d6
 background=1a1b26
 selection-foreground=c0caf5
@@ -172,7 +174,6 @@ bright6=0db9d7
 bright7=c0caf5
 
 [cursor]
-color=1a1b26 c0caf5
 style=block
 blink=no
 FOOT
@@ -185,6 +186,11 @@ install -m 0755 $SD/omarchy-goose ~/.local/bin/omarchy-goose 2>/dev/null || true
 install -m 0755 $SD/omarchy-start-apps ~/.local/bin/omarchy-start-apps 2>/dev/null || true
 install -m 0755 $SD/omarchy-command ~/.local/bin/omarchy-command
 install -m 0755 $SD/omarchy-waybar ~/.local/bin/omarchy-waybar
+# Host scrcpy Super chords land in /sdcard/omarchy-pixel/super.cmd; bridge applies them.
+install -m 0755 $SD/omarchy-super-bridge ~/.local/bin/omarchy-super-bridge
+# Clear stale super.cmd offset so a fresh daemon re-reads cleanly after deploy.
+: > /sdcard/omarchy-pixel/super.cmd
+rm -f "${XDG_RUNTIME_DIR:-$HOME/.run}/omarchy-super-bridge.offset" 2>/dev/null || true
 # 1password wrapper only if desktop binary present
 if [ -x /opt/1Password/1password ] && [ ! -x ~/.local/bin/1password ]; then
   cat > ~/.local/bin/1password << "WRAP"
@@ -253,25 +259,55 @@ APPLY
 adb push /tmp/omarchy-apply-on-device.sh "$SD/apply-landscape.sh" >/dev/null
 adb shell chmod 755 "$SD/apply-landscape.sh" "$SD/start-omarchy-fullscreen.sh" "$SD/omarchy-wallpaper"
 
-# Run apply via Termux (non-debuggable — use am start service RUN_COMMAND)
+# Run a bash script inside Termux. Prefer RUN_COMMAND; fall back to keyboard injection
+# when the binder startservice path fails (common on some Pixel builds).
+termux_run_script() {
+  local script="$1"
+  adb shell am startservice --user 0 \
+    -n com.termux/.app.RunCommandService \
+    -a com.termux.RUN_COMMAND \
+    --es com.termux.RUN_COMMAND_PATH /data/data/com.termux/files/usr/bin/bash \
+    --esa com.termux.RUN_COMMAND_ARGUMENTS "-lc,${script}" \
+    --ez com.termux.RUN_COMMAND_BACKGROUND true \
+    --es com.termux.RUN_COMMAND_WORKDIR /data/data/com.termux/files/home \
+    >/dev/null 2>&1 || true
+
+  # Also fire the Omarchy launcher APK path when present (uses RUN_COMMAND permission).
+  adb shell am start -n com.omarchy.launcher/.MainActivity >/dev/null 2>&1 || true
+}
+
+# Type a command into the focused Termux session (spaces as %s).
+termux_type_cmd() {
+  local cmd="$1"
+  local encoded
+  adb shell am start -n com.termux/.app.TermuxActivity >/dev/null 2>&1 || true
+  sleep 0.7
+  adb shell input tap 670 1800 >/dev/null 2>&1 || true
+  sleep 0.2
+  # Clear any partial line (DEL x60) before typing.
+  for _ in $(seq 1 60); do adb shell input keyevent 67 >/dev/null 2>&1 || true; done
+  sleep 0.15
+  encoded="$(printf '%s' "$cmd" | sed 's/ /%s/g')"
+  adb shell input text "$encoded" >/dev/null 2>&1 || true
+  sleep 0.3
+  adb shell input keyevent 66 >/dev/null 2>&1 || true
+  sleep 0.5
+}
+
 echo "Running apply via Termux..."
 adb shell "rm -f $SD/deploy-apply.log"
-adb shell am startservice \
-  -n com.termux/.app.RunCommandService \
-  -a com.termux.RUN_COMMAND \
-  --es com.termux.RUN_COMMAND_PATH /data/data/com.termux/files/usr/bin/bash \
-  --esa com.termux.RUN_COMMAND_ARGUMENTS "-lc,/sdcard/omarchy-pixel/apply-landscape.sh" \
-  --ez com.termux.RUN_COMMAND_BACKGROUND true \
-  --es com.termux.RUN_COMMAND_WORKDIR /data/data/com.termux/files/home \
-  >/dev/null 2>&1 || true
+termux_run_script "/sdcard/omarchy-pixel/apply-landscape.sh"
 
-# Fallback: try app_process free form via termux-tasker style
 sleep 2
-# Poll for apply log
-for i in $(seq 1 40); do
+# Poll for apply log; if RUN_COMMAND is dead, inject via keyboard once.
+for i in $(seq 1 50); do
   if adb shell "grep -q APPLY_DONE $SD/deploy-apply.log 2>/dev/null"; then
     echo "apply finished"
     break
+  fi
+  if [ "$i" -eq 8 ]; then
+    echo "RUN_COMMAND slow/unavailable — injecting apply via Termux keyboard"
+    termux_type_cmd "bash /sdcard/omarchy-pixel/apply-landscape.sh"
   fi
   sleep 1
 done
@@ -291,14 +327,15 @@ adb shell wm user-rotation lock 1 2>/dev/null || adb shell wm user-rotation 1 2>
 adb shell "am force-stop com.termux.x11" 2>/dev/null || true
 sleep 0.5
 
-adb shell am startservice \
-  -n com.termux/.app.RunCommandService \
-  -a com.termux.RUN_COMMAND \
-  --es com.termux.RUN_COMMAND_PATH /data/data/com.termux/files/usr/bin/bash \
-  --esa com.termux.RUN_COMMAND_ARGUMENTS "-lc,/sdcard/omarchy-pixel/start-omarchy-fullscreen.sh" \
-  --ez com.termux.RUN_COMMAND_BACKGROUND true \
-  --es com.termux.RUN_COMMAND_WORKDIR /data/data/com.termux/files/home \
-  >/dev/null 2>&1 || true
+termux_run_script "/sdcard/omarchy-pixel/start-omarchy-fullscreen.sh"
+# Keyboard fallback if sway does not appear quickly.
+(
+  sleep 10
+  if ! adb shell "ps -A 2>/dev/null | grep -E ' [Ss]way$| sway '" | grep -qv grep; then
+    echo "sway not up yet — injecting start via Termux keyboard"
+    termux_type_cmd "bash /sdcard/omarchy-pixel/start-omarchy-fullscreen.sh"
+  fi
+) &
 
 echo "waiting for sway..."
 for i in $(seq 1 45); do

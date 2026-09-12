@@ -32,8 +32,11 @@ for_window [class="1Password"] border pixel 2
 
 bindsym $mod+Return exec $term
 bindsym $mod+t exec $term
+# Super+W matches host Omarchy ("close window"). Super+Q kept as alias.
+bindsym $mod+w kill
 bindsym $mod+q kill
 bindsym $mod+g exec $goosebin
+bindsym $mod+k exec /home/cody/.local/bin/omarchy-command
 bindsym $mod+b exec $browser
 bindsym $mod+p exec $onepass
 bindsym $mod+f fullscreen
@@ -47,6 +50,21 @@ bindsym $mod+Left focus left
 bindsym $mod+Right focus right
 bindsym $mod+Up focus up
 bindsym $mod+Down focus down
+
+# Mirror control keys: host Super chords are translated to bare F-keys.
+# This bypasses Android's interception of physical META/Super.
+bindsym F1 workspace number 1
+bindsym F2 workspace number 2
+bindsym F3 workspace number 3
+bindsym F5 kill
+bindsym F6 exec /home/cody/.local/bin/omarchy-command
+bindsym F7 exec $term
+bindsym F8 exec $goosebin
+bindsym F9 exec $browser
+bindsym F10 exec $onepass
+bindsym F11 fullscreen
+bindsym F12 floating toggle
+# End mirror control keys.
 
 input type:touch {
     tap enabled
@@ -62,6 +80,8 @@ bar {
     swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
+# Host scrcpy Super bridge: apply commands written to /sdcard/omarchy-pixel/super.cmd
+exec_always /home/cody/.local/bin/omarchy-super-bridge
 # Every full Omarchy boot (Android boot hook or home-screen app) starts exactly
 # one terminal, Goose desktop, Chromium, and 1Password.
 exec /home/cody/.local/bin/omarchy-start-apps

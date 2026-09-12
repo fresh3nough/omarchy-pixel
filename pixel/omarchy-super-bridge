@@ -1,0 +1,163 @@
+#!/usr/bin/env bash
+# omarchy-super-bridge — apply Super-command requests from the host mirror.
+#
+# Host Hyprland (scrcpy focused) writes lines to:
+#   /sdcard/omarchy-pixel/super.cmd
+# This daemon (started inside the Pixel Sway session) reads new lines and runs
+# matching swaymsg commands so Super chords work even when Android eats META.
+set -euo pipefail
+
+SD="${OMARCHY_SD:-/sdcard/omarchy-pixel}"
+CMD_FILE="${OMARCHY_SUPER_CMD_FILE:-$SD/super.cmd}"
+LOG="${OMARCHY_SUPER_LOG:-$SD/super-bridge.log}"
+OFFSET_FILE="${XDG_RUNTIME_DIR:-$HOME/.run}/omarchy-super-bridge.offset"
+
+mkdir -p "$(dirname "$CMD_FILE")" "$(dirname "$OFFSET_FILE")" "$SD" 2>/dev/null || true
+touch "$CMD_FILE" 2>/dev/null || true
+: >"$LOG" 2>/dev/null || true
+
+find_sock() {
+  local c
+  if [[ -n "${SWAYSOCK:-}" && -S "${SWAYSOCK}" ]]; then
+    printf '%s\n' "$SWAYSOCK"
+    return 0
+  fi
+  for c in \
+    "$HOME/.run"/sway-ipc.*.sock \
+    /tmp/sway-ipc.*.sock \
+    /run/user/*/sway-ipc.*.sock; do
+    if [[ -S "$c" ]]; then
+      printf '%s\n' "$c"
+      return 0
+    fi
+  done
+  return 1
+}
+
+run_sway() {
+  local sock
+  sock="$(find_sock)" || {
+    echo "$(date -Iseconds) NO_SWAYSOCK cmd=$*" >>"$LOG"
+    return 1
+  }
+  SWAYSOCK="$sock" swaymsg "$@" >>"$LOG" 2>&1 || {
+    echo "$(date -Iseconds) FAIL sock=$sock cmd=$*" >>"$LOG"
+    return 1
+  }
+  echo "$(date -Iseconds) OK cmd=$*" >>"$LOG"
+}
+
+# Map a compact host token to a swaymsg invocation.
+# Tokens are single-line, space-separated. First word is the verb.
+handle_line() {
+  local line="$1"
+  # strip CR and comments/empty
+  line="${line%$'\r'}"
+  [[ -z "$line" || "$line" =~ ^# ]] && return 0
+
+  # Optional timestamp prefix: "TS <epoch> <cmd...>"
+  if [[ "$line" =~ ^TS[[:space:]]+[0-9]+[[:space:]]+(.*)$ ]]; then
+    line="${BASH_REMATCH[1]}"
+  fi
+
+  set -- $line
+  local verb="${1:-}"
+  shift || true
+
+  case "$verb" in
+    kill|close)
+      run_sway kill
+      ;;
+    exec)
+      # exec <command...>
+      if [[ $# -lt 1 ]]; then
+        return 0
+      fi
+      run_sway exec -- "$*"
+      ;;
+    term|terminal|foot)
+      run_sway exec -- foot
+      ;;
+    goose)
+      run_sway exec -- /home/cody/.local/bin/omarchy-goose
+      ;;
+    keyboard|command|menu)
+      run_sway exec -- /home/cody/.local/bin/omarchy-command
+      ;;
+    browser|chromium)
+      run_sway exec -- /home/cody/.local/bin/omarchy-chromium
+      ;;
+    onepass|1password|password)
+      run_sway exec -- /home/cody/.local/bin/1password
+      ;;
+    fullscreen|full)
+      run_sway fullscreen
+      ;;
+    float|floating)
+      run_sway floating toggle
+      ;;
+    reload)
+      run_sway reload
+      ;;
+    workspace)
+      run_sway workspace number "${1:-1}"
+      ;;
+    focus)
+      # focus left|right|up|down
+      run_sway focus "${1:-left}"
+      ;;
+    raw)
+      # raw <swaymsg args...>
+      run_sway "$@"
+      ;;
+    ping)
+      echo "$(date -Iseconds) PONG" >>"$LOG"
+      ;;
+    *)
+      echo "$(date -Iseconds) UNKNOWN cmd=$line" >>"$LOG"
+      ;;
+  esac
+}
+
+offset=0
+if [[ -f "$OFFSET_FILE" ]]; then
+  offset="$(cat "$OFFSET_FILE" 2>/dev/null || echo 0)"
+fi
+# If file shrank, reset
+size="$(wc -c <"$CMD_FILE" 2>/dev/null || echo 0)"
+if [[ "$offset" -gt "$size" ]]; then
+  offset=0
+fi
+
+echo "$(date -Iseconds) bridge start offset=$offset file=$CMD_FILE" >>"$LOG"
+
+# Prefer inotify when available; always fall back to poll.
+poll_once() {
+  local size new
+  size="$(wc -c <"$CMD_FILE" 2>/dev/null || echo 0)"
+  if [[ "$size" -lt "$offset" ]]; then
+    offset=0
+  fi
+  if [[ "$size" -le "$offset" ]]; then
+    return 0
+  fi
+  # Read only the new bytes as lines
+  new="$(dd if="$CMD_FILE" bs=1 skip="$offset" 2>/dev/null || true)"
+  offset="$size"
+  printf '%s' "$offset" >"$OFFSET_FILE"
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    handle_line "$line"
+  done <<<"$new"
+}
+
+if command -v inotifywait >/dev/null 2>&1; then
+  while true; do
+    poll_once
+    inotifywait -qq -e modify,close_write,move,create "$CMD_FILE" "$SD" 2>/dev/null || sleep 0.25
+  done
+else
+  while true; do
+    poll_once
+    sleep 0.15
+  done
+fi
