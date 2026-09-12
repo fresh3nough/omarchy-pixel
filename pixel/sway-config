@@ -59,7 +59,7 @@ input type:pointer {
 
 # Sway owns these processes so they survive and inherit SWAYSOCK.
 bar {
-    swaybar_command waybar
+    swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
 exec /home/cody/.local/bin/omarchy-goose

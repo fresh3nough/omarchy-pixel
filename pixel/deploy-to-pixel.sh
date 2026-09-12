@@ -50,6 +50,7 @@ adb push "$ROOT/omarchy-chromium" "$SD/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD/omarchy-command" >/dev/null
+adb push "$ROOT/omarchy-waybar" "$SD/omarchy-waybar" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD/install-1password-desktop.sh" >/dev/null
 adb push "$ROOT/install-bwrap-stub.sh" "$SD/install-bwrap-stub.sh" >/dev/null
 adb push "$ROOT/sway-config" "$SD_RICE/pixel/sway-config" >/dev/null
@@ -65,6 +66,7 @@ adb push "$ROOT/omarchy-chromium" "$SD_RICE/pixel/omarchy-chromium" >/dev/null
 adb push "$ROOT/omarchy-goose" "$SD_RICE/pixel/omarchy-goose" >/dev/null
 adb push "$ROOT/omarchy-start-apps" "$SD_RICE/pixel/omarchy-start-apps" >/dev/null
 adb push "$ROOT/omarchy-command" "$SD_RICE/pixel/omarchy-command" >/dev/null
+adb push "$ROOT/omarchy-waybar" "$SD_RICE/pixel/omarchy-waybar" >/dev/null
 adb push "$ROOT/install-1password-desktop.sh" "$SD_RICE/pixel/install-1password-desktop.sh" >/dev/null
 # Also keep install-pixel available
 if [ -f "$REPO/install-pixel.sh" ]; then
@@ -182,6 +184,7 @@ install -m 0755 $SD/omarchy-chromium ~/.local/bin/omarchy-chromium 2>/dev/null |
 install -m 0755 $SD/omarchy-goose ~/.local/bin/omarchy-goose 2>/dev/null || true
 install -m 0755 $SD/omarchy-start-apps ~/.local/bin/omarchy-start-apps 2>/dev/null || true
 install -m 0755 $SD/omarchy-command ~/.local/bin/omarchy-command
+install -m 0755 $SD/omarchy-waybar ~/.local/bin/omarchy-waybar
 # 1password wrapper only if desktop binary present
 if [ -x /opt/1Password/1password ] && [ ! -x ~/.local/bin/1password ]; then
   cat > ~/.local/bin/1password << "WRAP"
@@ -205,7 +208,12 @@ export PATH="$HOME/.local/bin:/usr/bin:$PATH"
 export LANG=C.UTF-8 LC_ALL=C.UTF-8
 export GLYCIN_DISABLE_SANDBOX=1
 export BUBBLEWRAP_SKIP=1
-unset WAYLAND_DISPLAY
+# Waybar/GTK must not inherit a stale Android/proot D-Bus autolaunch state.
+unset DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID WAYLAND_DISPLAY
+if command -v dbus-launch >/dev/null 2>&1; then
+  eval "$(dbus-launch --sh-syntax 2>/dev/null)" || true
+  export DBUS_SESSION_BUS_ADDRESS DBUS_SESSION_BUS_PID
+fi
 export WLR_BACKENDS=x11
 export WLR_NO_HARDWARE_CURSORS=1
 # Software render avoids DRI3/DRM permission failures under proot

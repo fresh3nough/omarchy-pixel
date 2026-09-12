@@ -8,6 +8,7 @@ cp -f $SD/waybar-config.json $HOME/.config/waybar/config
 cp -f $SD/waybar-style.css $HOME/.config/waybar/style.css
 install -m 0755 $SD/omarchy-wallpaper $HOME/.local/bin/omarchy-wallpaper
 install -m 0755 $SD/omarchy-command $HOME/.local/bin/omarchy-command
+install -m 0755 $SD/omarchy-waybar $HOME/.local/bin/omarchy-waybar
 [ -f $SD/backgrounds/1-quattro.jpg ] && cp -f $SD/backgrounds/1-quattro.jpg $HOME/.local/share/omarchy-pixel/backgrounds/1-quattro.jpg
 
 cat > $HOME/.config/sway/config << 'SWAY'
@@ -71,7 +72,7 @@ input type:pointer {
 
 # Sway owns these processes so they survive and inherit SWAYSOCK.
 bar {
-    swaybar_command waybar
+    swaybar_command /home/cody/.local/bin/omarchy-waybar
 }
 exec_always /home/cody/.local/bin/omarchy-wallpaper
 exec /home/cody/.local/bin/omarchy-goose
