@@ -106,9 +106,10 @@ pacman-key --populate archlinuxarm 2>/dev/null || pacman-key --populate archlinu
 
 # Prefer reachable Arch Linux ARM mirrors (default mirror often times out on mobile).
 cat > /etc/pacman.d/mirrorlist << "MIRRORS"
-Server = http://ca.us.mirror.archlinuxarm.org/\$arch/\$repo
-Server = http://mirrors.ocf.berkeley.edu/archlinuxarm/\$arch/\$repo
-Server = http://mirror.archlinuxarm.org/\$arch/\$repo
+Server = http://fl.us.mirror.archlinuxarm.org/$arch/$repo
+Server = http://mirrors.ocf.berkeley.edu/archlinuxarm/$arch/$repo
+Server = http://ca.us.mirror.archlinuxarm.org/$arch/$repo
+Server = http://mirror.archlinuxarm.org/$arch/$repo
 MIRRORS
 
 pacman --disable-sandbox -Sy --noconfirm
