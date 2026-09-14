@@ -669,6 +669,21 @@ if [ -f "/sdcard/omarchy-pixel/Omarchy.apk" ]; then
       -d file:///sdcard/omarchy-pixel/Omarchy.apk \
       -t application/vnd.android.package-archive 2>/dev/null || true
   }
+  
+  # Create homescreen shortcut via Android launcher intent
+  # This programmatically adds the Omarchy launcher to the homescreen (second page)
+  log "Creating homescreen shortcut to Omarchy launcher..."
+  am broadcast \
+    -a com.android.launcher.action.INSTALL_SHORTCUT \
+    --es android.intent.extra.shortcut.NAME "Omarchy" \
+    --es android.intent.extra.shortcut.INTENT "intent:#Intent;action=android.intent.action.MAIN;component=com.omarchy.launcher/.MainActivity;end" \
+    --es android.intent.extra.shortcut.ICON_RESOURCE.PACKAGE com.omarchy.launcher \
+    --es android.intent.extra.shortcut.ICON_RESOURCE.RESOURCE_NAME omarchy_icon \
+    --ez duplicate false \
+    2>/dev/null || {
+    log "WARN: Homescreen shortcut creation failed"
+    log "      You can manually add it: long-press home → Widgets → Termux:Widget → Omarchy.sh"
+  }
 fi
 
 # Ensure Termux:Widget shortcut exists and works

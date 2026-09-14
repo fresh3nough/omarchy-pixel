@@ -35,3 +35,16 @@ if [ ! -f "$HOME/start-omarchy-fullscreen.sh" ] && [ -f "/sdcard/omarchy-pixel/s
   cp -f "/sdcard/omarchy-pixel/start-omarchy-fullscreen.sh" "$HOME/"
   chmod 755 "$HOME/start-omarchy-fullscreen.sh"
 fi
+
+# Restore homescreen shortcut after device boot
+# The APK should be installed already, but the shortcut might be cleared
+if command -v am &>/dev/null; then
+  am broadcast \
+    -a com.android.launcher.action.INSTALL_SHORTCUT \
+    --es android.intent.extra.shortcut.NAME "Omarchy" \
+    --es android.intent.extra.shortcut.INTENT "intent:#Intent;action=android.intent.action.MAIN;component=com.omarchy.launcher/.MainActivity;end" \
+    --es android.intent.extra.shortcut.ICON_RESOURCE.PACKAGE com.omarchy.launcher \
+    --es android.intent.extra.shortcut.ICON_RESOURCE.RESOURCE_NAME omarchy_icon \
+    --ez duplicate false \
+    2>/dev/null || true
+fi

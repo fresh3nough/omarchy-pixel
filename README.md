@@ -281,15 +281,24 @@ The rice automatically installs `window-arrange` from the bundled scripts for Pi
 
 Omarchy-on-Pixel provides multiple ways to launch the desktop:
 
-### 1. Native Android Launcher APK 
+### 1. Native Android Launcher APK (Home Screen Shortcut)
 **Recommended for daily use**
 
-The installation automatically includes `Omarchy.apk` - a native Android launcher app:
+The installation automatically:
+1. Installs the native `Omarchy.apk` launcher app
+2. Creates a **home-screen shortcut** on your second page (click to launch)
+3. Restores the shortcut after device reboots
+
+Features:
 - **One-tap launch** directly from Android home screen
 - **Status monitoring** - shows if session is running
 - **Quick stop/restart** functionality  
 - **Configuration options** for resolution and auto-boot
 - **Professional interface** with Omarchy branding
+
+The shortcut is created automatically during setup via Android's launcher intent system. If the shortcut is missing:
+- **Manual add**: Long-press home → Widgets → Termux:Widget → Omarchy.sh
+- **Or** app drawer → Omarchy → Add to home screen
 
 Install location: `com.omarchy.launcher` package
 
@@ -324,9 +333,15 @@ Direct execution from Termux terminal:
 All methods are configured during installation:
 
 1. **APK Installation**: `setup-omarchy-pixel.sh` installs the launcher APK
-2. **Widget Creation**: Termux shortcut automatically created in `~/.shortcuts/`
-3. **Boot Integration**: `boot-omarchy.sh` ensures persistence after reboots
-4. **Home Copies**: Scripts copied to `$HOME` for faster access
+2. **Home Screen Shortcut**: Automatically placed on second page of your home screen (via Android launcher intent)
+3. **Widget Creation**: Termux shortcut automatically created in `~/.shortcuts/`
+4. **Boot Integration**: `boot-omarchy.sh` ensures shortcuts persist after reboots
+5. **Home Copies**: Scripts copied to `$HOME` for faster access
+
+**If the home screen shortcut doesn't appear:**
+- Some Android launchers require manual widget placement
+- Alternative: App drawer → Omarchy → "Add to home screen"
+- Or: Long-press home → Widgets → Termux:Widget → Omarchy.sh
 
 ### Launcher File Hierarchy
 
