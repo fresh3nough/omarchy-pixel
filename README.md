@@ -276,3 +276,89 @@ grep -A5 '\[options\]' /etc/pacman.conf
 ### Integration with window-arrange
 The rice automatically installs `window-arrange` from the bundled scripts for Pixel-optimized tiling.
 
+
+## Launcher Options
+
+Omarchy-on-Pixel provides multiple ways to launch the desktop:
+
+### 1. Native Android Launcher APK 
+**Recommended for daily use**
+
+The installation automatically includes `Omarchy.apk` - a native Android launcher app:
+- **One-tap launch** directly from Android home screen
+- **Status monitoring** - shows if session is running
+- **Quick stop/restart** functionality  
+- **Configuration options** for resolution and auto-boot
+- **Professional interface** with Omarchy branding
+
+Install location: `com.omarchy.launcher` package
+
+### 2. Termux:Widget Shortcut
+**Best for power users**
+
+Fast home screen widget that directly executes scripts:
+- **Zero overhead** - directly calls bash scripts
+- **Fastest startup time** (bypasses launcher app)
+- **Customizable** - edit `~/.shortcuts/Omarchy.sh`
+- **Multiple shortcuts** - can create variants (debug mode, etc.)
+
+Location: `$HOME/.shortcuts/Omarchy.sh`
+
+### 3. Manual Termux Commands
+**For debugging and development**
+
+Direct execution from Termux terminal:
+```bash
+# Full desktop session
+~/start-omarchy-fullscreen.sh
+
+# Basic session (for testing)  
+~/start-omarchy.sh
+
+# Configuration only
+~/configure-termux-x11.sh
+```
+
+### Auto-Launch Setup
+
+All methods are configured during installation:
+
+1. **APK Installation**: `setup-omarchy-pixel.sh` installs the launcher APK
+2. **Widget Creation**: Termux shortcut automatically created in `~/.shortcuts/`
+3. **Boot Integration**: `boot-omarchy.sh` ensures persistence after reboots
+4. **Home Copies**: Scripts copied to `$HOME` for faster access
+
+### Launcher File Hierarchy
+
+```
+$HOME/
+├── start-omarchy-fullscreen.sh    # Main launcher (copied from /sdcard)
+├── Omarchy.sh                     # Widget launcher (same as .shortcuts)
+└── .shortcuts/
+    └── Omarchy.sh                 # Termux:Widget entry point
+
+/sdcard/omarchy-pixel/
+├── Omarchy.apk                    # Native Android launcher
+├── Omarchy.sh                     # Widget script template  
+└── start-omarchy-fullscreen.sh   # Master launcher script
+```
+
+### Usage After Installation
+
+**Android Home Screen**: 
+- Look for "Omarchy" app icon → tap to launch
+- Or add Termux:Widget → select "Omarchy.sh"
+
+**Termux Terminal**:
+```bash
+~/start-omarchy-fullscreen.sh  # Direct launch
+```
+
+**Remote/ADB**:
+```bash
+adb shell "am start -n com.omarchy.launcher/.MainActivity"  # Native app
+adb shell "su -c '~/Omarchy.sh'"                           # Widget script
+```
+
+The installation sets up all options simultaneously so you can use whichever method fits your workflow.
+
