@@ -207,3 +207,72 @@ adb shell "tail -f /sdcard/omarchy-pixel/install-pixel-live.log"
 # Check pacman configuration
 adb shell "proot-distro login archlinux -- cat /etc/pacman.d/mirrorlist"
 ```
+
+---
+
+## Pixel Integration (Termux + Arch proot)
+
+This rice can be run inside the Omarchy-on-Pixel environment via the `install-pixel.sh` script.
+
+### Prerequisites
+1. **Base Omarchy setup completed** via `omarchy-pixel` repo
+2. **Arch proot with sway/foot running** under Termux:X11
+3. **passwordless sudo configured** for user `cody`
+
+### Installation Methods
+
+#### Method 1: Direct ADB Push + Execution
+```bash
+# From host (with rice repo)
+adb push . /sdcard/omarchy-rice
+adb shell "proot-distro login archlinux --user cody --shared-tmp -- bash -lc 'cd /sdcard && cp -a omarchy-rice ~/github/ && cd ~/github/omarchy-rice && bash ./install-pixel.sh'"
+```
+
+#### Method 2: Inside Pixel Session (via foot)
+```bash
+# 1. Copy rice to device
+rsync -a --exclude '.git' /sdcard/omarchy-rice/ ~/github/omarchy-rice/
+
+# 2. Launch in foot terminal 
+swaymsg "exec foot --title=rice bash -lc 'cd ~/github/omarchy-rice && bash ./install-pixel.sh'"
+```
+
+### Pixel-Specific Adaptations
+
+The `install-pixel.sh` script configures rice for Arch ARM proot environment:
+
+- **Pacman**: Uses `--disable-sandbox` wrapper for proot compatibility
+- **Kernel packages**: Skips `linux-*` and `mkinitcpio` (IgnorePkg)
+- **Mirror priority**: Prefers working ARM mirrors (fl.us, ocf.berkeley.edu)
+- **Heavy packages**: Skips Docker, Steam, VS Code by default (`INSTALL_*=0`)
+- **Passwordless**: Disables SDDM/TPM unlock setup (`INSTALL_PASSWORDLESS_BOOT=0`)
+
+### Environment Variables
+```bash
+export INSTALL_DESKTOP=1           # Install desktop apps
+export CLONE_REPOS=1               # Clone GitHub repos  
+export INSTALL_SESSION_RESTORE=1   # Auto-launch apps
+export SKIP_SYSTEM_UPDATE=1        # No pacman -Syu (would hang)
+export PREFER_CHROMIUM_ON_ARM=1     # Use Chromium instead of Chrome
+```
+
+### Troubleshooting
+
+**Pacman 404 errors**: Ensure mirrors use `$arch/$repo` not `\$arch/\$repo`
+```bash
+cat /etc/pacman.d/mirrorlist  # Should show real URLs like aarch64/core
+```
+
+**Sudo failures**: Fix sudoers as root
+```bash
+proot-distro login archlinux -- bash -c 'echo "cody ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/cody'
+```
+
+**Missing packages**: Check DisableSandbox is under `[options]` section
+```bash
+grep -A5 '\[options\]' /etc/pacman.conf
+```
+
+### Integration with window-arrange
+The rice automatically installs `window-arrange` from the bundled scripts for Pixel-optimized tiling.
+
