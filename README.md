@@ -156,3 +156,54 @@ omarchy-pixel/
 ## License
 
 Based on the original Omarchy project and Goose framework.
+
+## Session Setup Commands (Post-Installation)
+
+After running the initial install scripts, these commands were used to optimize the deployment:
+
+### Termux Package Verification
+```bash
+# Verify Termux packages after reset
+adb shell "command -v proot-distro; ls /data/data/com.termux/files/usr/bin/proot* 2>/dev/null"
+```
+
+### Pacman Mirror Fix
+The setup script was updated to fix mirror URLs that were causing 404 errors:
+```bash
+# Before: Server = http://mirror.archlinuxarm.org/\$arch/\$repo  
+# After:  Server = http://mirror.archlinuxarm.org/$arch/$repo
+```
+
+### Play Store Termux Compatibility
+- Play Store Termux lacks `RUN_COMMAND` service
+- Deployment uses keyboard injection via ADB as fallback
+- Scripts auto-detect and adapt to available execution methods
+
+### Running Rice Scripts Inside Pixel Session
+After base Omarchy is running, you can enhance it with omarchy-rice:
+
+1. **Push rice repo to device:**
+```bash
+adb push /path/to/omarchy-rice /sdcard/omarchy-rice
+```
+
+2. **Execute in foot terminal inside sway:**
+```bash
+# Via adb shell (if available)
+adb shell "proot-distro login archlinux --user cody -- bash -lc 'cd ~/github/omarchy-rice && bash ./install-pixel.sh'"
+
+# Or via swaymsg from inside the session
+swaymsg "exec foot --title=rice bash -lc 'cd ~/github/omarchy-rice && bash ./install-pixel.sh'"
+```
+
+### Debugging Commands
+```bash
+# Check running processes
+adb shell "ps -A -o pid,comm,args | grep -E 'sway|foot|termux-x11'"
+
+# Monitor install progress
+adb shell "tail -f /sdcard/omarchy-pixel/install-pixel-live.log"
+
+# Check pacman configuration
+adb shell "proot-distro login archlinux -- cat /etc/pacman.d/mirrorlist"
+```
