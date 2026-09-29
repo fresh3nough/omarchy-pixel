@@ -1,10 +1,6 @@
 # Omarchy-Pixel - Linux Desktop on Pixel via Termux
 
 <p align="center">
-  <img src="docs/hero-inception.jpg" alt="Omarchy on Pixel mirrored inception-style on an Omarchy Surface Pro" width="100%"/>
-</p>
-
-<p align="center">
   <img src="docs/hero-pixel-mirror.jpg" alt="Pixel landscape session beside the Omarchy rice desktop" width="100%"/>
 </p>
 
