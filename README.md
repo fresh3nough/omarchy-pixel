@@ -16,7 +16,6 @@ A guide to set up and run an Omarchy-style desktop (**sway** preferred under pro
 This project puts a full desktop on a Pixel by:
 - Installing **proot-distro** (Arch Linux ARM) inside Termux
 - Running **sway + waybar + foot + swaybg** through **Termux:X11** (landscape)
-- Applying the [omarchy-rice](https://github.com/fresh3nough/omarchy-rice) Tokyo-night stack (Chromium, goose, dock)
 - Adding a home-screen **Omarchy** launcher icon (and Termux:Widget shortcuts)
 
 ## Prerequisites
@@ -281,10 +280,6 @@ proot-distro login archlinux -- bash -c 'echo "cody ALL=(ALL) NOPASSWD: ALL" > /
 ```bash
 grep -A5 '\[options\]' /etc/pacman.conf
 ```
-
-### Integration with window-arrange
-The rice automatically installs `window-arrange` from the bundled scripts for Pixel-optimized tiling.
-
 
 ## Launcher Options
 
