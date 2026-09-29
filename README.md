@@ -1,14 +1,31 @@
 # Omarchy-Pixel - Linux Desktop on Pixel via Termux
 
-A guide to set up and run Omarchy-style desktop (Hyprland when available, otherwise **sway** on Arch Linux ARM) on a Pixel phone using Termux and ADB.
+<p align="center">
+  <img src="docs/hero-inception.jpg" alt="Omarchy on Pixel mirrored inception-style on an Omarchy Surface Pro" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/hero-desktop.jpg" alt="Live sway desktop on Pixel — foot grid + Chromium + waybar" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/hero-pixel-mirror.jpg" alt="Pixel landscape session beside the Omarchy rice desktop" width="100%"/>
+</p>
+
+<p align="center">
+  <em>Pixel 10 Pro XL · Termux:X11 · Arch proot · sway + waybar + foot + Chromium</em><br/>
+  <sub>Linux desktop on phone, mirrored onto an Omarchy Surface — inception-style.</sub>
+</p>
+
+A guide to set up and run an Omarchy-style desktop (**sway** preferred under proot; Hyprland when it works) on a Pixel phone using Termux and ADB.
 
 ## Overview
 
-This project sets up a full-featured desktop environment (Hyprland) on a Pixel phone by:
-- Installing **proot-distro** (Arch Linux container) inside Termux
-- Installing **Omarchy** (the desktop environment) via the official release
-- Configuring **Termux:X11** to run Hyprland on the phone
-- Adding **home-screen shortcuts** via Termux:Widget
+This project puts a full desktop on a Pixel by:
+- Installing **proot-distro** (Arch Linux ARM) inside Termux
+- Running **sway + waybar + foot + swaybg** through **Termux:X11** (landscape)
+- Applying the [omarchy-rice](https://github.com/fresh3nough/omarchy-rice) Tokyo-night stack (Chromium, goose, dock)
+- Adding a home-screen **Omarchy** launcher icon (and Termux:Widget shortcuts)
 
 ## Prerequisites
 

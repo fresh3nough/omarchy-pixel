@@ -2,6 +2,10 @@
 apks/*.apk
 *.apk
 
+# Keep README hero JPEGs; drop heavy PNG masters
+docs/*.png
+docs/capture-live.jpg
+
 # Local runtime / device artifacts
 host-run.log
 install-log.txt
