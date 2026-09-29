@@ -5,10 +5,6 @@
 </p>
 
 <p align="center">
-  <img src="docs/hero-desktop.jpg" alt="Live sway desktop on Pixel — foot grid + Chromium + waybar" width="100%"/>
-</p>
-
-<p align="center">
   <img src="docs/hero-pixel-mirror.jpg" alt="Pixel landscape session beside the Omarchy rice desktop" width="100%"/>
 </p>
 
