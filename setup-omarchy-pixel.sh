@@ -467,15 +467,20 @@ export GDK_BACKEND=wayland
 export PATH="$HOME/.local/bin:/usr/bin:$PATH"
 mkdir -p "$XDG_RUNTIME_DIR"
 cd "$HOME"
-if command -v Hyprland >/dev/null 2>&1; then
+# Prefer sway under Termux:X11/proot - Hyprland backend often fails (CBackend::create).
+if command -v sway >/dev/null 2>&1; then
+  export XDG_CURRENT_DESKTOP=sway
+  export WLR_BACKENDS="${WLR_BACKENDS:-x11}"
+  export WLR_RENDERER="${WLR_RENDERER:-pixman}"
+  export WLR_NO_HARDWARE_CURSORS=1
+  export LIBGL_ALWAYS_SOFTWARE=1
+  exec sway
+elif command -v Hyprland >/dev/null 2>&1; then
   export XDG_CURRENT_DESKTOP=Hyprland
   exec Hyprland
 elif command -v hyprland >/dev/null 2>&1; then
   export XDG_CURRENT_DESKTOP=Hyprland
   exec hyprland
-elif command -v sway >/dev/null 2>&1; then
-  export XDG_CURRENT_DESKTOP=sway
-  exec sway
 elif command -v cage >/dev/null 2>&1; then
   export XDG_CURRENT_DESKTOP=cage
   exec cage foot

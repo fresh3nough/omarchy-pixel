@@ -138,6 +138,36 @@ adb push "$STAGING/bootstrap-on-device.sh" "$SDCARD_DIR/bootstrap-on-device.sh" 
 adb shell "mkdir -p $SDCARD_DIR/staging" | tee -a "$LOG"
 adb push "$STAGING/goose-desktop" "$SDCARD_DIR/goose-desktop" | tee -a "$LOG"
 adb push "$STAGING/goose-desktop" "$SDCARD_DIR/staging/goose-desktop" | tee -a "$LOG"
+
+# Launcher APK + fullscreen/pixel assets (needed for homescreen icon + polished session)
+if [ -f "$APK_DIR/Omarchy.apk" ]; then
+  adb push "$APK_DIR/Omarchy.apk" "$SDCARD_DIR/Omarchy.apk" | tee -a "$LOG"
+elif [ -f "$APK_DIR/Omarchy-launcher.apk" ]; then
+  adb push "$APK_DIR/Omarchy-launcher.apk" "$SDCARD_DIR/Omarchy.apk" | tee -a "$LOG"
+elif [ -f "$ROOT/apks/Omarchy-launcher.apk" ]; then
+  adb push "$ROOT/apks/Omarchy-launcher.apk" "$SDCARD_DIR/Omarchy.apk" | tee -a "$LOG"
+fi
+# Prefer host-side install of launcher APK (pm install from Termux may fail without privs)
+log "Installing Omarchy launcher APK on device"
+if [ -f "$APK_DIR/Omarchy.apk" ]; then
+  adb install -r -g "$APK_DIR/Omarchy.apk" 2>&1 | tee -a "$LOG" || true
+elif [ -f "$APK_DIR/Omarchy-launcher.apk" ]; then
+  adb install -r -g "$APK_DIR/Omarchy-launcher.apk" 2>&1 | tee -a "$LOG" || true
+fi
+for f in start-omarchy-fullscreen.sh configure-termux-x11.sh boot-omarchy.sh Omarchy.sh \
+         omarchy-wallpaper goose-desktop sway-config foot.ini waybar-config.json waybar-style.css \
+         omarchy-chromium omarchy-goose omarchy-code omarchy-files omarchy-start-apps \
+         omarchy-command omarchy-waybar omarchy-super-bridge; do
+  if [ -f "$ROOT/pixel/$f" ]; then
+    adb push "$ROOT/pixel/$f" "$SDCARD_DIR/$f" | tee -a "$LOG"
+  elif [ -f "$STAGING/$f" ]; then
+    adb push "$STAGING/$f" "$SDCARD_DIR/$f" | tee -a "$LOG"
+  fi
+done
+adb shell "mkdir -p $SDCARD_DIR/backgrounds" | tee -a "$LOG"
+if [ -f "$ROOT/backgrounds/1-quattro.jpg" ]; then
+  adb push "$ROOT/backgrounds/1-quattro.jpg" "$SDCARD_DIR/backgrounds/1-quattro.jpg" | tee -a "$LOG"
+fi
 adb shell "chmod 755 $SDCARD_DIR/*.sh $SDCARD_DIR/Omarchy $SDCARD_DIR/goose-desktop $SDCARD_DIR/staging/goose-desktop 2>/dev/null; ls -la $SDCARD_DIR" | tr -d '\r' | tee -a "$LOG"
 
 # Wake + unlock-ish
@@ -283,6 +313,29 @@ log "Refreshing Termux:Widget + opening shortcut creator"
 adb shell am broadcast -a com.termux.widget.ACTION_REFRESH_WIDGET 2>/dev/null || true
 adb shell am start -n com.termux.widget/.TermuxCreateShortcutActivity >/dev/null 2>&1 || \
   adb shell am start -n com.termux.widget/com.termux.widget.TermuxCreateShortcutActivity >/dev/null 2>&1 || true
+
+log "Installing/ensuring Omarchy launcher APK + homescreen shortcut (page 2)"
+if adb shell pm path com.omarchy.launcher 2>/dev/null | grep -q package:; then
+  log "Launcher already installed"
+else
+  adb install -r -g "$APK_DIR/Omarchy.apk" 2>&1 | tee -a "$LOG" \
+    || adb install -r -g "$APK_DIR/Omarchy-launcher.apk" 2>&1 | tee -a "$LOG" || true
+fi
+# Programmatic homescreen shortcut (Pixel may still require manual add; INSTALL_SHORTCUT is best-effort)
+# Quote the intent so ";end" is not eaten by the local shell.
+adb shell 'am broadcast -a com.android.launcher.action.INSTALL_SHORTCUT   --es android.intent.extra.shortcut.NAME Omarchy   --es android.intent.extra.shortcut.INTENT "intent:#Intent;action=android.intent.action.MAIN;category=android.intent.category.LAUNCHER;component=com.omarchy.launcher/.MainActivity;end"   --es android.intent.extra.shortcut.ICON_RESOURCE "com.omarchy.launcher:drawable/omarchy_icon"   --ez duplicate false' 2>&1 | tee -a "$LOG" || true
+adb shell cmd shortcut get-shortcuts --user 0 com.omarchy.launcher 2>&1 | tee -a "$LOG" || true
+
+# Post-setup repair: prefer sway under proot and ensure fullscreen launcher + widget shortcut
+if [ -f "$ROOT/fix-omarchy-session.sh" ]; then
+  adb push "$ROOT/fix-omarchy-session.sh" "$SDCARD_DIR/fix-omarchy-session.sh" | tee -a "$LOG" || true
+  adb shell "chmod 755 $SDCARD_DIR/fix-omarchy-session.sh" 2>/dev/null || true
+fi
+# Re-run session fix + launch via typed Termux command (RUN_COMMAND needs allow-external-apps)
+if grep -q 'Omarchy-on-Pixel ready' "$SETUP_LOG" 2>/dev/null; then
+  log "Applying sway-prefer session fix + fullscreen launchers"
+  type_cmd "bash /sdcard/omarchy-pixel/fix-omarchy-session.sh" || true
+fi
 
 # Stay awake off
 adb shell svc power stayon false 2>/dev/null || true
